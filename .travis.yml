@@ -14,6 +14,12 @@ env:
   global:
     - GRADLE_OPTS="-Xms128m"
 
+before_install:
+    - sudo wget https://releases.hashicorp.com/terraform/0.11.3/terraform_0.11.3_linux_amd64.zip
+    - unzip terraform_0.11.3_linux_amd64.zip
+    - sudo mv terraform /usr/local/bin/
+    - sudo terraform --version
+
 script: ./gradlew clean --info startSystemTestsWithDocker -DskipServiceInstallation=false -Dlog.level=DEBUG -DexecType=DOCKER -PawsExecution=true
 
 sudo: required
