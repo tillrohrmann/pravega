@@ -12,16 +12,20 @@ jdk:
  - oraclejdk8
 env:
   global:
-    - GRADLE_OPTS="-Xms128m"
-
+  - GRADLE_OPTS="-Xms128m"
+  - secure: QKlo0PrfxzHYkeLAVT8zgHDaSDV6X6kpPe6hlW//cVDNIAi3t1ciOssvHOQpLg19D5fmU85jVz8QWsOHqDwFIIOPGNV+2F4DwNNQVulW6qVoSfaOdP6eIF/uR8ASjkVp2XIaqywLBTyWifV+QmeCaoKcF/KuJZIQoEAdYm04sKTUWej5LiPq1rQPAXKnvXBpnhK1QT4FOQHI6zR96kgrYO2V4UH7AHRp1wRQ0C3ZifuninCiirTPgYYe/E95svLniaGWDz1KgWGTagPOLJIH5ge2xTW3DeHQ7ESV3ZrIyg3bucEXkmnkpMPHuLWXdvXL4nNkmZeN3EWg3VB04VVbdk8SPxPY+G+JRkzKhuTvwlD2V26SvBHY84jsfReLOhWFIdFTXSFv4ZgliVSkLjwKALm+OyrCNARmdgukkH2WXu7PAigIydxeooq9SXT2ytsh1ZlExKdZCMqP7rJapgn04+Z2Q7VwOIxqLIHF62gkyubGEE5FghnyFUpDSaZjBTvaQHopL6FeS9lhUKAaWaMp7Dx9AfXeUU+fncOT2PCczljxVxT9LqOqoK4kF5tv2zdaP8wGeVM7E1gSky3LuTfuYMfzQR2nDOdsf0rSv4ewPMQZqQj4GxBvb3Jfd/XqSexLnHWZDS7TAnnz2GXqoNjtiyD100tSVPgv+BpE2UEg8GI=
+  - secure: O+vZ07sUBqIBd7nMTH2QOmm8L+PbwaUIpv4SL+lOHTiyGfqyxcRhEWjfCZIcQYK1Lu3Vp8/XNu9UY37xwk/ZTzSoaczlIPdMBGOllQuTl/Ub2r4LJOSwFfJoptms1e/q9Y//eEcAX1yRcPGEe2EkfhmF4jSp2jSrHmzMzQeDr9Z7no2piYxOSmrHXvZRIjN223bPQGhl+xyWL5MsmlUJHU/le9P8TqOyO3jH6IG5AjmogitvncmtLwH8wkpiHvyqLsoD0IgFwiVUXhpFl4pGdQlIKaKBZw13iueXRSn2PKFx/WsrMDoR5GMwe3a8fJfgm0P9oxoWhWme8UgbxBBeYg1oh4EmH/ZeVGeMS7sxeaYZ+5WzKdhauUJY0PXjUlgKmRRZa7uS9LuCpQij4DByn/I9ci8j8z3ILtt5kos2Ojh+ZZ8q+cxwrzEgpplmYdbqbn8ouJ28JFZiAogWJa6UkkX3zYxVYzpGawqLdclM5PRI96BJJm7i9pRv7UqoTV1C7qQUDFHeoeTjl4jRssr0EkvoVWF4rEsCgr9WSbAeKY3zH3BM1T/G9ijwdvkwQUCAX2QTuPoLYCT43od3AtdV5mq7HfLOqbtKdugPVR3jkeJ4+h6UwKKKGOfvZQUZJOHYEQV2RLyhHKwk5YI44m1/L/hoAAllm3ev0xB0w/xQnjI=
+  - secure: htXVR40oLyNuhuasnP1qTpOOM4A1C+aQe8TpIb2Q5daempQudMy/RspYsr145h5nFV4V3qqultyGw1vBlKOBfkLF/dP5n0eGFTgLJjjIKVLT+pJJN8O1wsUyUHeN+nDOyoZTg/eI9LNgId+QunKat/JN3VgXZ6EkJNbz4q55WTmghOvokydY/ryyfcZaQoB8/NomhTat6j9S5TGsH1mO/qt/7kTBWwkrfHVoOeGbm5/06VRPKTCrDVco+Bbdz+M2I1eIQDvafiwVjidTRNaQuYEkAVjBxznkjJEfX2umA+DB4UiJ9xCYbk5LJURRZTV+EK3HANXi7qb8n9ymp2EhgS6ZhAusMipzFIDkFu9HfnMdBQEMomcLb90dSfvVTagPYR5sb0d7HkvQkXx+IMP09YnN9RK7CAp5JPwkAbPWGqYR0VLBoovV+MzDF4nnql+n9IS1cY8ACCoVoU/5rnxVDFBuQAexfTRodul12yJqR3l9sxbcwVlu+jqsAwMpelhtntsxk8FqVyUOzXVSujNsMexNSWFwt8wtNTH1bnHjIPRy64wmGplal0wQp7gJIPpGeyyFpXjcxxyH6vI5TRFHBodHX6N2m3WTnyCzkbUH+tZ1JBZHzjHdf3TXZ2PFW9mM6h+rO99ck+h7lHGNc3pKAW3QZrBd7KAPe/S+N7rq2cg=
 before_install:
-    - sudo wget https://releases.hashicorp.com/terraform/0.11.3/terraform_0.11.3_linux_amd64.zip
-    - unzip terraform_0.11.3_linux_amd64.zip
-    - sudo mv terraform /usr/local/bin/
-    - sudo terraform --version
-    - openssl aes-256-cbc -K $encrypted_0a6446eb3ae3_key -iv $encrypted_0a6446eb3ae3_iv -in travis.log.enc -out travis.log -d
+- sudo wget https://releases.hashicorp.com/terraform/0.11.3/terraform_0.11.3_linux_amd64.zip
+- unzip terraform_0.11.3_linux_amd64.zip
+- sudo mv terraform /usr/local/bin/
+- sudo terraform --version
+- openssl aes-256-cbc -pass "pass:$TRAVIS_CI_SECRET" -in ./.secret -out ./aws-key-pair.pem -d -a
 
-script: ./gradlew clean --info startSystemTestsWithDocker -DskipServiceInstallation=false -Dlog.level=DEBUG -DexecType=DOCKER -PawsExecution=true
+script: "./gradlew clean --info startSystemTestsWithDocker -DskipServiceInstallation=false -Dlog.level=DEBUG -DexecType=DOCKER -PawsExecution=true
+-Paws_access_key=AWS_ACCESS_KEY -Paws_secret_key=AWS_SECRET_KEY -Paws_region=us-east-2  -Paws_key_name=aws-key-pair  -Pconfig_path=test/system/aws
+-Pcred_path=aws-key-pair.pem -Ppravega_org=Prabha-Veerubhotla -Ppravega_branch=systemtests_aws -DimageVersion=systemtests_aws -DawsExec=true"
 
 sudo: required
 
