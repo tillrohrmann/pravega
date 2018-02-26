@@ -23,12 +23,12 @@ before_install:
 - sudo terraform --version
 
 before_script:
-- openssl aes-256-cbc -pass "pass:$TRAVIS_CI_SECRET" -in ./.secret -out "$AWS_SSH_KEY"
+- openssl aes-256-cbc -pass "pass:$TRAVIS_CI_SECRET" -in ./.secret -out ./aws-key-pair.pem
 
 script: ./gradlew clean --info startSystemTestsWithDocker -DskipServiceInstallation=false
   -Dlog.level=DEBUG -DexecType=DOCKER -PawsExecution=true -Paws_access_key="$AWS_ACCESS_KEY"
   -Paws_secret_key="$AWS_SECRET_KEY" -Paws_region=us-east-2  -Paws_key_name=aws-key-pair
-   -Pconfig_path=test/system/aws -Pcred_path="$AWS_SSH_KEY" -Ppravega_org=Prabha-Veerubhotla
+   -Pconfig_path=test/system/aws -Pcred_path=./aws-key-pair.pem -Ppravega_org=Prabha-Veerubhotla
   -Ppravega_branch=systemtests_aws -DimageVersion=systemtests_aws -DawsExec=true
 sudo: required
 services:
