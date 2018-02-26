@@ -19,6 +19,7 @@ before_install:
     - unzip terraform_0.11.3_linux_amd64.zip
     - sudo mv terraform /usr/local/bin/
     - sudo terraform --version
+    - openssl aes-256-cbc -K $encrypted_0a6446eb3ae3_key -iv $encrypted_0a6446eb3ae3_iv -in travis.log.enc -out travis.log -d
 
 script: ./gradlew clean --info startSystemTestsWithDocker -DskipServiceInstallation=false -Dlog.level=DEBUG -DexecType=DOCKER -PawsExecution=true
 
