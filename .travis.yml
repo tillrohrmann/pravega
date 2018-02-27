@@ -1,45 +1,32 @@
-#
-# Copyright (c) 2017 Dell Inc., or its subsidiaries. All Rights Reserved.
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
 language: java
 jdk:
- - oraclejdk8
+- oraclejdk8
 env:
   global:
-  - secure: sZnrdscJ4yaBcOTkOBa9cMM7jj3UTSVYTmOkbbCg/iad0ik14oPcduY72G4JBtjGOje/8vdlE6tT1QlHbSwA3qW/APGxK4/qqKkRimYCxVy3dGdymThDBRqcWfapqcYAAPxFyjajgUZIv9/2uIvJ8k9cBq88KysJeu9cj0PXEXlOUWn2MwozuAUPtYx+0mbDdg9+35VfNv8lHtV7l2E5Vh6ZQG+ltdKwM526TkboPxmzseyQnK+aV3Me38rxP61nClPhA/dceBA0oQ8j2O7i9v+4Db6bdov4xZX8hOYphJ/L97wfJER/Eb1Rw0jwgMvx5PmWIlq/VAlwYas4aJxdqYAn0vMKPetIiEbUk4Wb1IjcbLoDJXrc+8vo3HtzM9tM5Z10cWv0JzgO0aMWMLmLL5mThBalbj2KQkLbFYJ1878tJtt43vvX/upLRBRmJ3nS8g7qZJcBDslcduHEw4+AbWhYcdEi+wcA7zCDJWzKBUwa/9iraDM13QfjokZpTefYV1KBMm6DVNoCq8M6Ww70sS6zvzwNNbFeF1v08212OLgF1tc3mKNItOgEoyxcL2qMn7Op//aLv4ITAujK/Lt6++c4bTsORliUjbjlL0sfn6w7HldXAa2IvD5Oe1AWrlvBG8Asc5+SsTH9PVrBVpXbFE4H6gTiP8q0GT19c59qqZE=
-  - secure: fzjVxpiQcLWevV/nxE75DA07E5GP5guMFheT9s13lZvvQ+3gYwZ9DkrxkkDd528xvsqtBXvd8+133mL+RbSf3rdq+NKEzd+tT/KYIflSrlFVQgiKer0HhP55reNKrUk4V03UhGnU3WL+U7bRUcH+aL8PEbuelH0MqoIPKOmRL1X4sQO+uU//Rb4fQFvVCq6/NEIz9bQgA/0j0RuHYCnPwCbXvc3yt40jPanQ+5NNziFjtWBhNu/sdVSEXiPnI9O6obSs2Dvk260EJXxVD7gi5/KGhjdijpW8P+gENk86qJ/JhYQB59GFefMbcePkfIGrLkwFWoNBYtMeb/wEDF+FvBz6IrGWUh//WQGzx3DZDA2ut+oVEb5RzO9nvXUIZDGKEfmMojc0R+SBZv7oeAXCf0PN55Y2WNythXqsH5Jd/dwm+hnI6uQmCgZ5Ct+B+S9oxqa32UNmvTpseWDQjhOe2LDj0PlI0GbCkRzKSiEnc/IjQmuZ0+a/CoqwsIb/cshC8sxtbeKWQdt8UhEGqV2BFLPLWOtnwdkF1D5lm/W22KQX7dWbYj31svJuOhzEnnWlfICZtcxL6yIWNZ6wGAXBDMXkizgEoOfhTPd1XsYYnLGflYi73+Lmb8dy/ZEs86/b3+JxyLULWYps8B2dL+TjcRkYDlCTyP13WWG/SeSe0c8=
-  - secure: x+R9Wb+OjeTNlYrvbSOCEX6p0j6OvDTs4u+l1if9hgjAKWnnrpABlhFnqFkm/ge35ZtVgvWB4w1fnEAGa7kQe51/lG7fayALWD9uU35TrRnDXB189uhNPkMCSdzf+gOQtn0wh4BiAEAN3AONIInlWXVmN9THEjV37x+zoDPG/Bosb9sCDwx1n4tZs/MUtKn9esjvsRt/n53hK0C5lQw01rm3E8nG6CfT/+gORRHb1WQPcomTybdTI9+AWoF0c2RI78nF5MRvazQSFIsPqkkbnD7LEijrLhNpufrxc7nLdEkh3ZEn6YQ7XDlIbcW0sUUQX78FSG1KEPDhUSSEaZ00weGNhwHm5cW+tjB9gf/7ed6y5RO7jT93OHkInOQXrHZONx1zP4dv+/ZYy9h3e9PNq8O/09lej7fz9QgST2TMZap8wBdnXDw3XFPcGT0uKl9gHlPb+fW8wuNN4Jzz7ILH0gQob+muzpwdfOdktTB0VgM5Ro1CjAdtqtFtucSxju8MrMZRn9yQt82ECfVQkJmHNJKXVdQXjVNTaEdbudlhyn9YbJl7SQKd5+CpnBF6jesxlglL/Nl8CKRyYynAZKpLGeZ4IW5EWvJnV2POgqW+CerussfEAOs12Oz4zkTVJ9ogBmqDod2ulLq3fN37u8vrL7uJYW8nMsaXigZNzvM6/6g=
-  - secure: tIP0x0XV6dOEWKir3EzYIk06jI1JAva+v0lP+3h+CsJZnK/PSGzeAxOu8RHD7eOCau20eK948SwcETTnTsfezv48pukMA20ith35oKRPuMcumAHh+PTrjwOKfdYDwuliq8xx3GVM+ivnUmwcYpvDzoDgn1D2P1hfLyDighmWw9pZovVaFBa0h3VTfLjj8UzvBKct0tW4fd30d0Fk4n/dXWrztu6rrUVGQQoZ7lUTORwdCTszppAz+h/vqWG7QVVmaawN761Ox2jec8J3jg4kkiom6mXZojLLn5EfiC/RDn3gSbLX4D7OHpZO0p1Rcb1Y046qAWCypv5SnRweUKW2VMohnTv0QMx9T/QRanXPoYiDoXuRx2XvYWbtJIEtNatG9rE0JJCYeoIfdiIdDQFHbYCHNW/G6b1g527xYr+SSO7/gzDwpA8ZpWpEEwnQH0Z6PrcQ2tyaIE/idpsaQ5xjVJH8G6n0PayqUTChNtPp7Reuq0pXMSHQNTZKKCT6Y2I3H+JJptjBJ99cORzNVHcAilXnZpI+Quy6u3jiLH4UOLtExQ6KQhxbs993nu/iY6eWss/GRbGNiMeg7FWFF9AbtBBS4QacfRO0eAD2ogEVG2cVYb/KUnq7Bl0R5foFEmmVuNAL5qXMd15LsRo8uj0j1LUuX8/0Kh9WEi4kELGt3JY=
+  - secure: YQN5WA4hoMCczn/EeUxMNpPFJKpaIrgSnrWpwywK1Nnu6u5vbeQ0rm1Uv4oOXML+vFN8l96FiiSCuBe6VX05hhoo8QeDvJ2W6tfZgz5NwWkOI1dypOFihgOfoyw9ZganVU7E5LGJ3dyT3Pgz+BmfRpn2m3+5YoKnAmW5ny41VkpyxKKAh9+UC0EU5xr6twSDYeKs3M+qkr/bPURxTnITVQ6bibDiD/T5jzoS8bV0hej0ZTMqy0Hj9xH1Hyt3Lg1ZPmHxYjQjyzy2X5Yq2KoOUbFz8q4OmV8byyVK4fO2MOV6Al4BXnsbChHtZQx/b+FLFPi+tBXj3kxwt8kusUDPB2+FVxI2Q/fuaVerR1TYaLKDLJyuNxwc8NeNu+aJhedIusAN88UjqIV8UOo7tZb7jqn0a/cJoqwfGYgyu9ekJmyNvYxmCnAYIkPfhn5nr+W0IXMjlN6NxLpCDO/3rit/Rmr55eO5kCjMIhx2yXrQnaVcQqaCYbV3yVfIGVCgZYvvrsvm7oNZZIv3s2SAhAwH6jEfCcRb+i4L2IvG0+Qd4QtF63y1jt9HUZWp+yuLK5SuMwFkRBdVi/otuZMtASp5TyC4LnvzRy7g2hABbY/jyWSJj8wOOdUtUJTvvx+YiaX68vlJ1wf6UyKCb5QhztvaPfJqgzR0a+F3jU4pgDK1wr4=
+  - secure: AmJ+dMS5QD1ylz8GJcpC+5yqaD+yey5+PBCfIYeYmJt5LOEzcnje0h886TiSHGF/82kkwPfxaSxx1reB1zxpjwIn5YxDYHSwAwjhWIQ16XEORxSLALuMTESV2VInkJ8cfiEVCXoxCvdTJ2WoDg3qDvvYArnzyCCX+9nG26L+iG98ByjiFo9BJ4CDf+SS9AD5nOLgJ32/386D/NK2b1mCsO2AwGhCvpSu0UZHuZI9KiCL2fHIG3PnYARQtaLv3LJHHjUo7PYlq8uJJlX7STfqe9IiNgd+AbXX+rf6LIogthDK8hyipDuKZRcnTAAKzwwiptsd3Q9n0R2UflH2Z797jubwFcw/YFQuF2bTMV1x9QRPLR4dZEPrD1ea9osfNysYLO7n7KHcQimDnNoLeQo8pVvJ8lQISoRXm31yT2U3yAXYgGrZ2zmijgEzfCXd8zG+0MXG5PIUEanP1HPhXnFf1Le1kUvp3lsGn7WZI3aShNjHQIjL9IxBqXt5UzvvnmpY+oJALLb3p+IMEIGU7dtiDKH8i7oUIIRmTWeOf1jJKn60U/eym4G8+6UIejJvljxVCr9wZDR5MkydyKOXJPUF+OhXt6bSInGFtb/Mimgl9E5aytW5QWE0EINRP87XC6BOdMjTofoI36Fi+pp8cwTwBBg+GrVSY67gloicXJRHujg=
+  - secure: AlBpKWgi+RzgBZwk9SS29fpfzLBgf7MFRgoR15JPOYav42MhT6rfYqfWZGZLRMtS4ZlJbmW8JLg0CnTv8jw9gxR1llscJnuyiW9+LQoLcQP6WWT92an6C0f7AY7k0vvISSpgZypvKBAyM2nkggAcNXUOvaotzysx7jbIxB2ZJug1P0Jtn3XdE3BODHLp71U7skJjgMZxLb1QbVm2hJoA35L/rJMrfui9+3Gw465dGksNH66vnXy8r5zTMX1YTupkeBJ6bTZsEAGUqEMiC9lL31TbSHTjL9Fm4IJJiN8cclzlXnTWupMAMmtLrgBMXuSVp4zX4S4DtpIZYWZR7Jfb4usAZai95sW1F/quLDxwqKEEKPyxg+EcKZaxPAoZDvifM1blq6iSxzWPOX+VI96u11t2JvVqOyeuzvWdTsJuLor8oJmZIDvGx1bG3F6RoB2SwYNJa1/ddqljzHVz9HPfnUIKgPmy+e1fk7yWFmcZaMA2a5xaF1ewRkNTtyT+5fRW3nfKUMqcA9Ae8cPHLllHUG5CSIocQx8OPM7cdUwY9M6Pkn7Y1veSqHY+86owF2odOg5q3ubo3KUQgZRwiHc6UtFnv2tmd+JJ7Xlq4V6eKDENnjSnFH9E0KYQcDsx0WN5eyUfmZa1MiPoVfDfqXr+cBlneDZQlGgmz4XyvEkHxFg=
+  - secure: TeIogZlD7RGMtB+1ytw9HIiP5Yvb/+6Zy9rSzplHZT6Rk0k5412XNqBJLqvT4hWitQOHxyz2cisNY1IzZw0EIMHb6I6jK6/sGzk46MUfGkvQbpS+CyluJRNmc6F0xTylE6b1ybDalj6lR9L+U8B1CiMOEixQvP94WUXSoHuOJYNWqjm6ikWMy+qZDxzd/k/H17pemaZBorBdFhSDDSi46o0Q6iwSWzGwPBeyLC8WQMfz4pC8oWUJ+sfcx2EsOWGMijOyWDvpKi3PTIZwFEDYM5wc/wL2z6alNVyGKnWeNATuMu9h7QqqY3eLGMAEf/aUQLXpVPiXpQ0C3XCR2r6g1C9DjgdiGjRJ2MeD3u/QX6Cz9alrXzRjOZOVJzc2rnGbk+p/MWolyccA4zwdiwcV1+krM05LfdYXg1bLRsZxnbAkdR+Xem/iTc5azeOJZhHedpf3z6nCK3+gI5UP7hyTvHL3qfOo7yqCfo/1AZswfXz8ILjr6ffcfZOearIvaM2WrqO5tuKWTak9Op35OosRpXrde78kTgUToYd2PWvEzoj5Po1eaEPUhmuuOjmqJGs3HG32nHtoV85cG7vSbzAx+I90FJ4UiWPGEsDKqNoFjgQn8au4XBhyYJIG2LArrajTAqNQQfjeNj1akWwjw44d32T8i5kGiW2A1yOGgORNLKk=
 before_install:
 - sudo wget https://releases.hashicorp.com/terraform/0.11.3/terraform_0.11.3_linux_amd64.zip
 - unzip terraform_0.11.3_linux_amd64.zip
 - sudo mv terraform /usr/local/bin/
 - sudo terraform --version
-
 before_script:
 - openssl aes-256-cbc -pass "pass:$TRAVIS_CI_SECRET" -in ./.secret -out "$AWS_SSH_KEY"
-
 script: ./gradlew clean --info startSystemTestsWithDocker -DskipServiceInstallation=false
   -Dlog.level=DEBUG -DexecType=DOCKER -PawsExecution=true -Paws_access_key="$AWS_ACCESS_KEY"
   -Paws_secret_key="$AWS_SECRET_KEY" -Paws_region=us-east-2  -Paws_key_name=aws-key-pair
-   -Pconfig_path=test/system/aws -Pcred_path=./.aws-key-pair.pem -Ppravega_org=Prabha-Veerubhotla
+  -Pconfig_path=test/system/aws -Pcred_path=/home/travis/build/pravega/pravega/.aws-key-pair.pem -Ppravega_org=Prabha-Veerubhotla
   -Ppravega_branch=systemtests_aws -DimageVersion=systemtests_aws -DawsExec=true
 sudo: required
 services:
-  - docker
-
+- docker
 cache:
   directories:
-   - ".gradle"
-   - "$HOME/.gradle"
-   - "$HOME/.m2"
-
+  - ".gradle"
+  - "$HOME/.gradle"
+  - "$HOME/.m2"
 notifications:
   slack:
     matrix:
@@ -47,12 +34,12 @@ notifications:
     rooms:
       secure: Gv0RJx1Sa/y5fmvLNwY+2ivfWZYCM0ekrr6UAHqsegnid6P/DFZrSrfSpwvcVh2OVNH8DHLV0BoiuDJ7amtl1eMDMXz5/lLz8tFWFKaHv4yDSadm8ILY/KnYUoP4IRuM3NyKQmBrmZB9Or5KFXboG6ex6UkgbuYy0Zyl6syEe168Iw8hlCRx26Jei7/y+8eE2MIGFh09TLRZ/944YbULum9H3KQLYv8nFdPc7GmR5AK461fnwZ7iYjb7MXkCctE5Vml3p9+2Qliv1ZJqNsQeKmSFW6IhiP6pNZ1V8VJEWMQmX/nBr9745l/N+CoLQz9ajLonlxn9xHdWms4TEu1ynFk6uxEJjlcpXcvcEaKhqAKcTMl0GMMRab2m+/Vt3S/VutJnVXQmnhZGT9glLFQHwcdHNqM/LEbXtyisB7zmGImUQpF2InCwO25IXug5gv64IfOHGMzL56yNIhbRgBY9Ud4Tux+pmkV5ZxJiBkul7/FiHQX7tQLUrzQosD0oyCOmaWD7kmbt15A0TOkLgup4HE+sSS1ASwisa7J2+HsbI3Upy3rNVKuIJP0L4KSTn4HSlDlMLLcWM+nz/YCEfuwSRXJTIstotNYHdsLUZAZSYAX7ejpeiuBRed4a4AlCROeKbKKwCcSvqCOjmCaPTpwJAGeJByOXLL2hfQzpDMKCIKM=
   email:
-    - arvind.kandhare@dell.com
-    - tom.kaitchuck@dell.com
-    - andrei.paduroiu@dell.com
-    - shivesh.ranjan@dell.com
-    - sandeep.shridhar@dell.com
-    - Vijayalakshmi.Veerubhotla@emc.com
-    - Flavio.Junqueira@emc.com
+  - arvind.kandhare@dell.com
+  - tom.kaitchuck@dell.com
+  - andrei.paduroiu@dell.com
+  - shivesh.ranjan@dell.com
+  - sandeep.shridhar@dell.com
+  - Vijayalakshmi.Veerubhotla@emc.com
+  - Flavio.Junqueira@emc.com
 after_success:
-  - bash <(curl -s https://codecov.io/bash) -t ccceafaf-7c60-4a02-9165-480174b535a2
+- bash <(curl -s https://codecov.io/bash) -t ccceafaf-7c60-4a02-9165-480174b535a2
