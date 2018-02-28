@@ -49,7 +49,7 @@ resource "aws_instance" "swarm_master" {
     destination = "/tmp/master_script.sh"
    connection = {
       type = "ssh"
-      user = "ubuntu"
+      user = "root"
       private_key = "${file("${var.cred_path}")}"
    }
   }
