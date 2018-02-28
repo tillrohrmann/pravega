@@ -57,7 +57,7 @@ resource "aws_instance" "swarm_master" {
  provisioner "remote-exec" {
    connection = {
       type = "ssh"
-      user = "ubuntu"
+      user = "root"
       private_key = "${file("${var.cred_path}")}"
    }
    inline = [
@@ -66,7 +66,7 @@ resource "aws_instance" "swarm_master" {
     ]
    }
   provisioner "local-exec" {
-   command = "scp -o StrictHostKeyChecking=no -i ${var.cred_path} ubuntu@${aws_instance.swarm_master.public_ip}:/home/ubuntu/token.sh  ${var.config_path}"
+   command = "scp -o StrictHostKeyChecking=no -i ${var.cred_path} root@${aws_instance.swarm_master.public_ip}:/home/ubuntu/token.sh  ${var.config_path}"
  }
 
 }
@@ -88,7 +88,7 @@ resource "aws_instance" "swarm_slaves" {
     destination = "/tmp/slave_script.sh"
     connection = {
       type = "ssh"
-      user = "ubuntu"
+      user = "root"
       private_key = "${file("${var.cred_path}")}"
    }
   }
@@ -97,7 +97,7 @@ resource "aws_instance" "swarm_slaves" {
  provisioner "remote-exec" {
    connection = {
       type = "ssh"
-      user = "ubuntu"
+      user = "root"
       private_key = "${file("${var.cred_path}")}"
    }
    inline = [
