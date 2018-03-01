@@ -12,7 +12,7 @@ before_install:
 - sudo mv terraform /usr/local/bin/
 - sudo terraform --version
 before_script:
-- openssl aes-256-cbc -pass "pass:$TRAVIS_CI_SECRET" -in ./.secret -out aws-key-pair.pem
+- openssl aes-256-cbc -pass "pass:$TRAVIS_CI_SECRET" -in ./.secret -out aws-key-pair.pem -a
 script: ./gradlew clean --stacktrace startSystemTestsWithDocker -DskipServiceInstallation=false
   -Dlog.level=DEBUG -DexecType=DOCKER -PawsExecution=true -Paws_access_key="$AWS_ACCESS_KEY"
   -Paws_secret_key="$AWS_SECRET_KEY" -Paws_region=us-east-2  -Paws_key_name=aws-key-pair
