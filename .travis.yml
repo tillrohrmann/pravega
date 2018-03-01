@@ -16,7 +16,7 @@ script: ./gradlew clean --stacktrace startSystemTestsWithDocker -DskipServiceIns
   -Dlog.level=DEBUG -DexecType=DOCKER -PawsExecution=true -Paws_access_key="$AWS_ACCESS_KEY"
   -Paws_secret_key="$AWS_SECRET_KEY" -Paws_region=us-east-2  -Paws_key_name=aws-key-pair
   -Pconfig_path=/home/travis/build/pravega/pravega/test/system/aws -Pcred_path=/home/travis/build/pravega/pravega/aws-key-pair.pem
-  -Ppravega_org=Prabha-Veerubhotla -Ppravega_branch=systemtests_aws -DimageVersion=systemtests_aws
+  -Ppravega_org=pravega -Ppravega_branch=travis-systemtests -DimageVersion=travis-systemtests
   -DawsExec=true
 sudo: required
 services:
