@@ -12,10 +12,8 @@ before_install:
 - unzip terraform_0.11.3_linux_amd64.zip
 - sudo mv terraform /usr/local/bin/
 - sudo terraform --version
-- export TF_LOG=INFO
-- export TF_LOG_PATH=./terraform.log
 
-script: travis_wait 20 ./gradlew clean --quiet startSystemTestsWithDocker -DskipServiceInstallation=false
+script: ./gradlew clean --quiet startSystemTestsWithDocker -DskipServiceInstallation=false
   -Dlog.level=DEBUG -DexecType=DOCKER -PawsExecution=true -Paws_access_key="$AWS_ACCESS_KEY"
   -Paws_secret_key="$AWS_SECRET_KEY" -Paws_region=us-east-2  -Paws_key_name=aws-key-pair
   -Pconfig_path=/home/travis/build/pravega/pravega/test/system/aws -Pcred_path=/home/travis/build/pravega/pravega/aws-key-pair.pem
