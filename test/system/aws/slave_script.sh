@@ -19,7 +19,7 @@ sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubun
 sudo apt-get update
 apt-cache madison docker-ce
 sudo apt-get -y install docker-ce=17.09.0~ce-0~ubuntu 
-cd /tmp && git clone https://github.com/$pravegaOrg/pravega.git && cd pravega/
+cd /tmp && git clone https://github.com/$pravegaOrg.git && cd pravega/
 git checkout $branch
 sudo add-apt-repository ppa:openjdk-r/ppa -y && sudo apt-get -y update && sudo apt-get install -y openjdk-8-jdk
 sudo chmod 777 /var/run/docker.sock

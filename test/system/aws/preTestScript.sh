@@ -14,7 +14,7 @@ aws_region=${3:-null}
 aws_key_name=${4:-aws-key-pair}
 cred_path=${5:-null}
 config_path=${6:-null}
-pravega_org=${7:-pravega}
+pravega_org=${7:-pravega/pravega}
 pravega_branch=${8:-master}
 cd aws/
 TF_LOG=WARN TF_LOG_PATH=./terraform.log terraform init
