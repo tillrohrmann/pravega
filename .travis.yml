@@ -21,6 +21,7 @@ script:
   -Pconfig_path=/home/travis/build/pravega/pravega/test/system/aws -Pcred_path=/home/travis/build/pravega/pravega/aws-key-pair.pem
   -Ppravega_org=pravega -Ppravega_branch="$TRAVIS_BRANCH"  -DimageVersion="$TRAVIS_BRANCH"
   -DawsExec=true
+
 sudo: required
 services:
 - docker
