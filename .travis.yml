@@ -28,7 +28,7 @@ jobs:
     install:
       - echo "Executing system tests on AWS"
     script:
-      ./gradlew --warn startSystemTestsWithDocker -DskipServiceInstallation=false
+      ./gradlew --info startSystemTestsWithDocker -DskipServiceInstallation=false
        -Dlog.level=DEBUG -DexecType=DOCKER -PawsExecution=true -Paws_access_key="$AWS_ACCESS_KEY"
       -Paws_secret_key="$AWS_SECRET_KEY" -Paws_region=us-east-2  -Paws_key_name=aws-key-pair
         -Pconfig_path=/home/travis/build/pravega/pravega/test/system/aws -Pcred_path=/home/travis/build/pravega/pravega/aws-key-pair.pem
