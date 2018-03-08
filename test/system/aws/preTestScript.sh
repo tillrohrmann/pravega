@@ -17,12 +17,15 @@ config_path=${6:-null}
 pravega_org=${7:-pravega/pravega}
 pravega_branch=${8:-master}
 cd aws/
-TF_LOG=WARN TF_LOG_PATH=./terraform.log terraform init
-TF_LOG=WARN TF_LOG_PATH=./terraform.log terraform apply -auto-approve -var aws_access_key=$aws_access_key \
- -var aws_secret_key=$aws_secret_key \
-  -var aws_region=$aws_region  \
-  -var aws_key_name=$aws_key_name \
--var cred_path=$cred_path \
- -var config_path=$config_path \
-  -var pravega_org=$pravega_org  \
-  -var pravega_branch=$pravega_branch
+export TF_LOG=WARN
+export TF_LOG_PATH=./terraform.log
+terraform -v
+terraform init
+#terraform apply -auto-approve -var aws_access_key=$aws_access_key \
+# -var aws_secret_key=$aws_secret_key \
+#  -var aws_region=$aws_region  \
+#  -var aws_key_name=$aws_key_name \
+#-var cred_path=$cred_path \
+# -var config_path=$config_path \
+#  -var pravega_org=$pravega_org  \
+#  -var pravega_branch=$pravega_branch

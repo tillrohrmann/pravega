@@ -21,10 +21,9 @@ jobs:
 
     before_install:
     - openssl aes-256-cbc -K $encrypted_7840d5b8aa7c_key -iv $encrypted_7840d5b8aa7c_iv -in aws-key-pair.pem.enc -out aws-key-pair.pem -d
-    - sudo wget https://releases.hashicorp.com/terraform/0.11.3/terraform_0.11.3_linux_amd64.zip
-    - unzip terraform_0.11.3_linux_amd64.zip
+    - sudo wget https://releases.hashicorp.com/terraform/0.11.2/terraform_0.11.2_linux_amd64.zip
+    - unzip terraform_0.11.2_linux_amd64.zip
     - sudo mv terraform /usr/local/bin/
-    - sudo terraform --version
     install:
       - echo "Executing system tests on AWS"
     script:
@@ -35,8 +34,8 @@ jobs:
           -Ppravega_org="$TRAVIS_REPO_SLUG" -Ppravega_branch="$TRAVIS_BRANCH"  -DimageVersion="$TRAVIS_BRANCH"
          -DawsExec=true
 
-    after_script:
-     - sudo terraform destroy -force
+    #after_script:
+    # - sudo terraform destroy -force
 
 sudo: required
 services:
