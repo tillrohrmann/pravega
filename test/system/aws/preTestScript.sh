@@ -18,7 +18,7 @@ pravega_org=${7:-pravega/pravega}
 pravega_branch=${8:-master}
 cd aws/
 export TF_LOG=INFO
-echo $TF_INFO
+echo $TF_LOG
 export TF_LOG_PATH=./terraform.log
 echo $TF_LOG_PATH
 terraform -v
