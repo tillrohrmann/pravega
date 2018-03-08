@@ -18,7 +18,9 @@ pravega_org=${7:-pravega/pravega}
 pravega_branch=${8:-master}
 cd aws/
 set TF_LOG=INFO
+echo $TF_INFO
 set TF_LOG_PATH=./terraform.log
+echo $TF_LOG_PATH
 terraform -v
 terraform init
 #terraform apply -auto-approve -var aws_access_key=$aws_access_key \
