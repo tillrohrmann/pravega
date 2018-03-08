@@ -17,9 +17,9 @@ config_path=${6:-null}
 pravega_org=${7:-pravega/pravega}
 pravega_branch=${8:-master}
 cd aws/
-set TF_LOG=INFO
+export TF_LOG=INFO
 echo $TF_INFO
-set TF_LOG_PATH=./terraform.log
+export TF_LOG_PATH=./terraform.log
 echo $TF_LOG_PATH
 terraform -v
 terraform init
