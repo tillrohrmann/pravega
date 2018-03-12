@@ -15,7 +15,6 @@ aws_key_name=${4:-aws-key-pair}
 cred_path=${5:-null}
 pravega_org=${6:-pravega/pravega}
 pravega_branch=${7:-master}
-cd aws/logs/
 TF_LOG=INFO terraform init
 TF_LOG=INFO terraform apply -auto-approve -var aws_access_key=$aws_access_key \
  -var aws_secret_key=$aws_secret_key \
