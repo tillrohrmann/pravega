@@ -29,7 +29,6 @@ import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import io.pravega.test.system.framework.Utils;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.Timeout;
@@ -57,7 +56,6 @@ import lombok.Cleanup;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-@Ignore
 @RunWith(SystemTestRunner.class)
 public class ReaderCheckpointTest {
 
