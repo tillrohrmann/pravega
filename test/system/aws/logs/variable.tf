@@ -30,6 +30,19 @@ variable "cred_path" {
   type = "string"
 }
 
+variable "pravega_aws_amis" {
+  default = {
+    us-east-2 = "ami-2581aa40"
+  }
+}
+
+variable "pravega_instance_type" {
+  default = {
+    us-east-2 = "t2.xlarge"
+  }
+}
+
+
 variable "pravega_org" {
   description = "pravega org type mention the fork name in case of fork"
   type = "string"
