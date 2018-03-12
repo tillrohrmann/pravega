@@ -54,6 +54,16 @@ resource "aws_instance" "swarm_master" {
    }
   }
 
+  provisioner "file" {
+    source = "${var.config_path}/logTarScript.sh"
+    destination = "/tmp/logTarScript.sh"
+    connection = {
+      type = "ssh"
+      user = "ubuntu"
+      private_key = "${file("${var.cred_path}")}"
+    }
+  }
+
  provisioner "remote-exec" {
    connection = {
       type = "ssh"
@@ -93,8 +103,17 @@ resource "aws_instance" "swarm_slaves" {
    }
   }
 
+  provisioner "file" {
+    source = "${var.config_path}/logTarScript.sh"
+    destination = "/tmp/logTarScript.sh"
+    connection = {
+      type = "ssh"
+      user = "ubuntu"
+      private_key = "${file("${var.cred_path}")}"
+    }
+  }
 
- provisioner "remote-exec" {
+  provisioner "remote-exec" {
    connection = {
       type = "ssh"
       user = "ubuntu"
