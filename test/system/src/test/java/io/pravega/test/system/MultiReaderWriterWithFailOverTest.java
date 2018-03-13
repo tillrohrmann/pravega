@@ -33,6 +33,7 @@ import lombok.extern.slf4j.Slf4j;
 import mesosphere.marathon.client.MarathonException;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.Timeout;
@@ -40,6 +41,7 @@ import org.junit.runner.RunWith;
 import static org.junit.Assert.assertTrue;
 
 @Slf4j
+@Ignore
 @RunWith(SystemTestRunner.class)
 public class MultiReaderWriterWithFailOverTest extends  AbstractFailoverTests {
 

@@ -32,6 +32,7 @@ import mesosphere.marathon.client.MarathonException;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import java.net.URI;
@@ -46,6 +47,7 @@ import java.util.stream.Collectors;
 import static org.junit.Assert.assertTrue;
 
 @Slf4j
+@Ignore
 @RunWith(SystemTestRunner.class)
 public class ReadTxnWriteScaleWithFailoverTest extends AbstractFailoverTests {
 
