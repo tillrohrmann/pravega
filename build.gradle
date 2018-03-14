@@ -675,8 +675,8 @@ project('test:system') {
     }
 
     task collectLogsPostTest(type: Exec) {
-        commandLine './aws/logs/postTestScript.sh'
-        args "$aws_access_key", "$aws_secret_key", "$aws_region", "$aws_key_name", "$cred_path", "$pravega_org", "$pravega_branch"
+        commandLine './aws/postTestScript.sh'
+        args "$aws_access_key", "$aws_secret_key", "$aws_region", "$aws_key_name", "$cred_path",  "$config_path", "$pravega_org", "$pravega_branch", "$travis_job_id"
     }
 }
 

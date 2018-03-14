@@ -8,6 +8,9 @@
 #
 #     http://www.apache.org/licenses/LICENSE-2.0
 #
+ACCESSKEY=${1:-null}
+SECRETKEY=${2:-null}
+RUNNAME=${3:-null}
 host="$(hostname)"
 ####copy all container logs in a given host.
 containersResult="$(docker ps -a -q|xargs)"
@@ -40,5 +43,6 @@ fi
 #### copy all test logs on the given mesos host.
 find / -name 'server.log' -print0 | tar -czvf testLogsIn-$host.tar.gz --null -T -
 
-aws s3 cp /tmp/*.tar.gz  s3://my-tf-test-bucket-in-us-east-2/sample-run-1
+for file in /home/ubuntu/*.tar.gz; do  sudo AWS_ACCESS_KEY_ID=$ACCESSKEY AWS_SECRET_ACCESS_KEY=$SECRETKEY AWS_DEFAULT_REGION=us-east-2  aws s3 cp $file  s3://my-tf-test-bucket-in-us-east-2/$RUNNAME/; done
+
 

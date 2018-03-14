@@ -26,3 +26,8 @@ TF_LOG=INFO terraform apply -auto-approve -var aws_access_key=$aws_access_key \
  -var config_path=$config_path \
   -var pravega_org=$pravega_org  \
   -var pravega_branch=$pravega_branch
+touch public_dns.txt
+master_public_dns=`terraform output master_public_dns`
+echo $master_public_dns >> $config_path/public_dns.txt
+slave_public_dns=`terraform output slave_public_dns`
+echo $slave_public_dns >> $config_path/public_dns.txt
