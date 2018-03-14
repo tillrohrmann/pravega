@@ -17,5 +17,5 @@ output "master_public_dns" {
 }
 
 output "slave_public_dns" {
-  value = "${split(",", aws_instance.swarm_slaves.*.public_dns)}"
+  value = "${aws_instance.swarm_slaves.*.public_dns}"
 }
