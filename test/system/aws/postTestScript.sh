@@ -22,7 +22,7 @@ var=`cat public_dns.txt`
 sed 's/,//' public_dns.txt
 sudo chmod 400 $cred_path
 for i in $var; do
-        ssh -o StrictHostKeyChecking=no -i $cred_path root@$i "bash -s" -- < ./logCollectionScript.sh.sh $aws_access_key $aws_secret_key $travis_job_id
+        ssh -o StrictHostKeyChecking=no -i $cred_path root@$i "bash -s" -- < ./logCollectionScript.sh $aws_access_key $aws_secret_key $travis_job_id
 done
 
 TF_LOG=INFO terraform destroy -force -var aws_access_key=$aws_access_key \
