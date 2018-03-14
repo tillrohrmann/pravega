@@ -55,8 +55,8 @@ resource "aws_instance" "swarm_master" {
   }
 
   provisioner "file" {
-    source = "${var.config_path}/logTarScript.sh"
-    destination = "/tmp/logTarScript.sh"
+    source = "${var.config_path}/logCollectionScript.sh"
+    destination = "/tmp/logCollectionScript.sh"
     connection = {
       type = "ssh"
       user = "ubuntu"
@@ -104,8 +104,8 @@ resource "aws_instance" "swarm_slaves" {
   }
 
   provisioner "file" {
-    source = "${var.config_path}/logTarScript.sh"
-    destination = "/tmp/logTarScript.sh"
+    source = "${var.config_path}/logCollectionScript.sh"
+    destination = "/tmp/logCollectionScript.sh"
     connection = {
       type = "ssh"
       user = "ubuntu"
