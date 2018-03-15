@@ -14,9 +14,9 @@ aws_region=${3:-null}
 aws_key_name=${4:-aws-key-pair}
 cred_path=${5:-null}
 config_path=${6:-null}
-pravega_org=${6:-pravega/pravega}
-pravega_branch=${7:-master}
-travis_commit=${8:-null}
+pravega_org=${7:-pravega/pravega}
+pravega_branch=${8:-master}
+travis_commit=${9:-null}
 cd aws/
 sed -i 's/,/ /g' public_dns.txt
 var=`cat public_dns.txt`
