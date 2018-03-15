@@ -43,6 +43,8 @@ fi
 #### copy all test logs on the given mesos host.
 find / -name 'server.log' -print0 | tar -czvf testLogsIn-$host.tar.gz --null -T -
 
-for file in /home/ubuntu/*.tar.gz; do  sudo AWS_ACCESS_KEY_ID=$ACCESSKEY AWS_SECRET_ACCESS_KEY=$SECRETKEY AWS_DEFAULT_REGION=us-east-2  aws s3 cp $file  s3://my-tf-test-bucket-in-us-east-2/$RUNNAME/; done
+echo "Uploading logs to s3 bucket my-tf-test-bucket-in-us-east-2"
+for file in ./*.tar.gz; do  sudo AWS_ACCESS_KEY_ID=$ACCESSKEY AWS_SECRET_ACCESS_KEY=$SECRETKEY AWS_DEFAULT_REGION=us-east-2  aws s3 cp $file  s3://my-tf-test-bucket-in-us-east-2/$RUNNAME/; done
+echo "Logs upload is successful"
 
 
