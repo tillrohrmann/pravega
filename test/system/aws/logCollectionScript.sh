@@ -45,7 +45,7 @@ fi
 find / -name 'server.log' -print0 | tar -czvf testLogsIn-$host.tar.gz --null -T -
 
 echo "Uploading logs to s3 bucket my-tf-test-bucket-in-us-east-2"
-for file in ./*.tar.gz; do  sudo AWS_ACCESS_KEY_ID=$ACCESSKEY AWS_SECRET_ACCESS_KEY=$SECRETKEY AWS_DEFAULT_REGION=us-east-2  aws s3 cp $file  s3://my-tf-test-bucket-in-us-east-2/$RUNNAME/$COMMIT/; done
+for file in ./*.tar.gz; do  sudo AWS_ACCESS_KEY_ID=$ACCESSKEY AWS_SECRET_ACCESS_KEY=$SECRETKEY AWS_DEFAULT_REGION=us-east-2  aws s3 cp $file  s3://pravega-systemtests-logs/$RUNNAME/$COMMIT/; done
 echo "Logs upload is successful"
 
 
