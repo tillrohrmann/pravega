@@ -32,7 +32,6 @@ import io.pravega.segmentstore.server.UpdateableContainerMetadata;
 import io.pravega.segmentstore.server.UpdateableSegmentMetadata;
 import io.pravega.segmentstore.server.logs.operations.Operation;
 import io.pravega.segmentstore.server.logs.operations.StreamSegmentMapOperation;
-import io.pravega.segmentstore.server.logs.operations.TransactionMapOperation;
 import io.pravega.segmentstore.storage.SegmentHandle;
 import io.pravega.segmentstore.storage.SegmentRollingPolicy;
 import io.pravega.segmentstore.storage.Storage;
@@ -793,22 +792,12 @@ public class StreamSegmentMapperTests extends ThreadPooledTestSuite {
                     mapOp.setStreamSegmentId(currentSeqNo);
                 }
 
-                UpdateableSegmentMetadata segmentMetadata = context.metadata.mapStreamSegmentId(mapOp.getStreamSegmentName(), mapOp.getStreamSegmentId());
-                segmentMetadata.setStorageLength(0);
-                segmentMetadata.setLength(mapOp.getLength());
-                segmentMetadata.setStartOffset(mapOp.getStartOffset());
-                if (mapOp.isSealed()) {
-                    segmentMetadata.markSealed();
+                UpdateableSegmentMetadata segmentMetadata;
+                if (mapOp.isTransaction()) {
+                    segmentMetadata = context.metadata.mapStreamSegmentId(mapOp.getStreamSegmentName(), mapOp.getStreamSegmentId(), mapOp.getParentStreamSegmentId());
+                } else {
+                    segmentMetadata = context.metadata.mapStreamSegmentId(mapOp.getStreamSegmentName(), mapOp.getStreamSegmentId());
                 }
-
-                segmentMetadata.updateAttributes(mapOp.getAttributes());
-            } else if (op instanceof TransactionMapOperation) {
-                TransactionMapOperation mapOp = (TransactionMapOperation) op;
-                if (mapOp.getStreamSegmentId() == ContainerMetadata.NO_STREAM_SEGMENT_ID) {
-                    mapOp.setStreamSegmentId(currentSeqNo);
-                }
-
-                UpdateableSegmentMetadata segmentMetadata = context.metadata.mapStreamSegmentId(mapOp.getStreamSegmentName(), mapOp.getStreamSegmentId(), mapOp.getParentStreamSegmentId());
                 segmentMetadata.setStorageLength(0);
                 segmentMetadata.setLength(mapOp.getLength());
                 segmentMetadata.setStartOffset(mapOp.getStartOffset());

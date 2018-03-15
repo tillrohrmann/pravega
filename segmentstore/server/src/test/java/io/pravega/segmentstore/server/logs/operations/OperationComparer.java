@@ -164,8 +164,6 @@ public class OperationComparer {
             assertSame(message, (CheckpointOperationBase) expected, (CheckpointOperationBase) actual);
         } else if (expected instanceof StreamSegmentMapOperation) {
             assertSame(message, (StreamSegmentMapOperation) expected, (StreamSegmentMapOperation) actual);
-        } else if (expected instanceof TransactionMapOperation) {
-            assertSame(message, (TransactionMapOperation) expected, (TransactionMapOperation) actual);
         } else if (expected instanceof UpdateAttributesOperation) {
             assertSame(message, (UpdateAttributesOperation) expected, (UpdateAttributesOperation) actual);
         } else {
@@ -175,18 +173,10 @@ public class OperationComparer {
 
     private void assertSame(String message, StreamSegmentMapOperation expected, StreamSegmentMapOperation actual) {
         Assert.assertEquals(message + " Unexpected StreamSegmentId.", expected.getStreamSegmentId(), actual.getStreamSegmentId());
+        Assert.assertEquals(message + " Unexpected ParentStreamSegmentId.", expected.getParentStreamSegmentId(), actual.getParentStreamSegmentId());
         Assert.assertEquals(message + " Unexpected StartOffset.", expected.getStartOffset(), actual.getStartOffset());
         Assert.assertEquals(message + " Unexpected StreamSegmentLength.", expected.getLength(), actual.getLength());
         Assert.assertEquals(message + " Unexpected StreamSegmentName.", expected.getStreamSegmentName(), actual.getStreamSegmentName());
-        AssertExtensions.assertMapEquals(message + "Unexpected attributes.", expected.getAttributes(), actual.getAttributes());
-    }
-
-    private void assertSame(String message, TransactionMapOperation expected, TransactionMapOperation actual) {
-        Assert.assertEquals(message + " Unexpected TransactionStreamSegmentId.", expected.getStreamSegmentId(), actual.getStreamSegmentId());
-        Assert.assertEquals(message + " Unexpected TransactionStreamSegmentName.", expected.getStreamSegmentName(), actual.getStreamSegmentName());
-        Assert.assertEquals(message + " Unexpected ParentStreamSegmentId.", expected.getParentStreamSegmentId(), actual.getParentStreamSegmentId());
-        Assert.assertEquals(message + " Unexpected StartOffset.", expected.getStartOffset(), actual.getStartOffset());
-        Assert.assertEquals(message + " Unexpected Length.", expected.getLength(), actual.getLength());
         AssertExtensions.assertMapEquals(message + "Unexpected attributes.", expected.getAttributes(), actual.getAttributes());
     }
 
