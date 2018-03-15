@@ -19,7 +19,7 @@ pravega_branch=${7:-master}
 travis_job_id=${8:-null}
 travis_commit=${9:-null}
 cd aws/
-sed 's/,//' public_dns.txt
+sed -i 's/,/ /g' public_dns.txt
 var=`cat public_dns.txt`
 sudo chmod 400 $cred_path
 for i in $var; do

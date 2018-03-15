@@ -37,7 +37,7 @@ jobs:
             -DawsExec=true
       - ./gradlew --info collectLogsPostTest -Paws_access_key="$AWS_ACCESS_KEY" -Paws_secret_key="$AWS_SECRET_KEY" -Paws_region=us-east-2 -Paws_key_name=aws-key-pair
                       -Pcred_path=/home/travis/build/pravega/pravega/aws-key-pair.pem -Ppravega_org="$TRAVIS_REPO_SLUG" -Ppravega_branch="$TRAVIS_BRANCH" -Ptravis_job_id="$TRAVIS_JOB_ID"
-                      -Ptravis_commit="$$TRAVIS_COMMIT"
+                      -Ptravis_commit="$TRAVIS_COMMIT"
 
 sudo: required
 services:
