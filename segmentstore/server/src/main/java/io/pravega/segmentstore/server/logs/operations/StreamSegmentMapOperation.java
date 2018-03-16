@@ -21,7 +21,7 @@ import java.util.UUID;
 /**
  * Log Operation that represents a mapping of StreamSegment Name to a StreamSegment Id.
  */
-public class StreamSegmentMapOperation extends MetadataOperation {
+public class StreamSegmentMapOperation extends MappingOperation {
     //region Members
 
     private long streamSegmentId;
@@ -70,70 +70,53 @@ public class StreamSegmentMapOperation extends MetadataOperation {
 
     //endregion
 
-    //region Properties
+    //region MappingOperation implementation.
 
-    /**
-     * Gets a value indicating the Name of the StreamSegment.
-     */
+    @Override
+    public long getParentStreamSegmentId() {
+        return this.parentStreamSegmentId;
+    }
+
+    @Override
     public String getStreamSegmentName() {
         return this.streamSegmentName;
     }
 
-    /**
-     * Gets a value indicating the Id of the StreamSegment.
-     */
+    @Override
     public long getStreamSegmentId() {
         return this.streamSegmentId;
     }
 
-    /**
-     * Sets the StreamSegmentId for this operation.
-     *
-     * @param value The Id of the segment to set.
-     */
+    @Override
     public void setStreamSegmentId(long value) {
         Preconditions.checkState(this.streamSegmentId == ContainerMetadata.NO_STREAM_SEGMENT_ID, "StreamSegmentId has already been assigned for this operation.");
         Preconditions.checkArgument(value != ContainerMetadata.NO_STREAM_SEGMENT_ID, "Invalid StreamSegmentId");
         this.streamSegmentId = value;
     }
 
-    /**
-     * Gets a value indicating the first offset within the StreamSegment available for reading.
-     */
+    @Override
     public long getStartOffset() {
         return this.startOffset;
     }
 
-    /**
-     * Gets a value indicating the Length of the StreamSegment at the time of the mapping.
-     */
+    @Override
     public long getLength() {
         return this.length;
     }
 
-    /**
-     * Gets a value indicating whether the StreamSegment is currently sealed at the time of the mapping.
-     */
+    @Override
     public boolean isSealed() {
         return this.sealed;
     }
 
-    /**
-     * Gets the Attributes for the StreamSegment at the time of the mapping.
-     */
+    @Override
     public Map<UUID, Long> getAttributes() {
         return this.attributes;
     }
 
-    /**
-     * Gets a value indicating the Id of the Parent StreamSegment.
-     */
-    public long getParentStreamSegmentId() {
-        return this.parentStreamSegmentId;
-    }
-
-    public boolean isTransaction() {
-        return this.parentStreamSegmentId != ContainerMetadata.NO_STREAM_SEGMENT_ID;
+    @Override
+    public boolean isNewSegment() {
+        return false;
     }
 
     @Override

@@ -29,6 +29,8 @@ import io.pravega.segmentstore.server.SegmentMetadataComparer;
 import io.pravega.segmentstore.server.UpdateableContainerMetadata;
 import io.pravega.segmentstore.server.UpdateableSegmentMetadata;
 import io.pravega.segmentstore.server.containers.StreamSegmentMetadata;
+import io.pravega.segmentstore.server.logs.operations.CreateSegmentOperation;
+import io.pravega.segmentstore.server.logs.operations.MappingOperation;
 import io.pravega.segmentstore.server.logs.operations.MergeTransactionOperation;
 import io.pravega.segmentstore.server.logs.operations.MetadataCheckpointOperation;
 import io.pravega.segmentstore.server.logs.operations.Operation;
@@ -48,6 +50,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -839,10 +842,38 @@ public class ContainerMetadataUpdateTransactionTests {
     //region MetadataOperations
 
     /**
+     * Tests the preProcessOperation and acceptOperation methods with CreateSegment operations.
+     */
+    @Test
+    public void testProcessCreateSegment() throws Exception {
+        testProcessMappingOperation(this::createNewSegment);
+    }
+
+    /**
      * Tests the preProcessOperation and acceptOperation methods with StreamSegmentMap operations.
      */
     @Test
     public void testProcessStreamSegmentMap() throws Exception {
+        testProcessMappingOperation(this::createSegmentMap);
+    }
+
+    /**
+     * Tests the processOperation and acceptOperation methods with CreateSegment (isTransaction==true).
+     */
+    @Test
+    public void testProcessCreateTransaction() throws Exception {
+        testProcessMappingOperation(this::createNewTransaction);
+    }
+
+    /**
+     * Tests the processOperation and acceptOperation methods with StreamSegmentMapOperations (isTransaction==true).
+     */
+    @Test
+    public void testProcessTransactionMap() throws Exception {
+        testProcessMappingOperation(this::createTransactionMap);
+    }
+
+    private void testProcessMappingOperation(Function<String, MappingOperation> createMap) throws Exception {
         UpdateableContainerMetadata metadata = createBlankMetadata();
 
         // Part 1: recovery mode (no-op).
@@ -850,7 +881,7 @@ public class ContainerMetadataUpdateTransactionTests {
         val txn1 = createUpdateTransaction(metadata);
 
         // Brand new StreamSegment.
-        StreamSegmentMapOperation mapOp = createMap();
+        MappingOperation mapOp = createMap.apply(SEGMENT_NAME);
         txn1.preProcessOperation(mapOp);
         Assert.assertEquals("preProcessOperation did modify the StreamSegmentId on the operation in recovery mode.",
                 ContainerMetadata.NO_STREAM_SEGMENT_ID, mapOp.getStreamSegmentId());
@@ -880,7 +911,7 @@ public class ContainerMetadataUpdateTransactionTests {
         // StreamSegmentName already exists (transaction) and we try to map with new id.
         AssertExtensions.assertThrows(
                 "Unexpected behavior from preProcessOperation when a StreamSegment with the same Name already exists (in transaction).",
-                () -> txn2.preProcessOperation(createMap(mapOp.getStreamSegmentName())),
+                () -> txn2.preProcessOperation(createMap.apply(mapOp.getStreamSegmentName())),
                 ex -> ex instanceof MetadataUpdateException);
 
         // Make changes permanent.
@@ -893,7 +924,7 @@ public class ContainerMetadataUpdateTransactionTests {
         // StreamSegmentName already exists (metadata) and we try to map with new id.
         AssertExtensions.assertThrows(
                 "Unexpected behavior from preProcessOperation when a StreamSegment with the same Name already exists (in metadata).",
-                () -> txn2.preProcessOperation(createMap(mapOp.getStreamSegmentName())),
+                () -> txn2.preProcessOperation(createMap.apply(mapOp.getStreamSegmentName())),
                 ex -> ex instanceof MetadataUpdateException);
 
         val length = segmentMetadata.getLength() + 5;
@@ -904,12 +935,12 @@ public class ContainerMetadataUpdateTransactionTests {
         // StreamSegmentName already exists and we try to map with the same id. Verify that we are able to update its
         // StorageLength (if different).
         val updateMap = new StreamSegmentMapOperation(StreamSegmentInformation.builder()
-                .name(mapOp.getStreamSegmentName())
-                .startOffset(startOffset)
-                .length(storageLength)
-                .sealed(true)
-                .attributes(createAttributes())
-                .build());
+                                                                              .name(mapOp.getStreamSegmentName())
+                                                                              .startOffset(startOffset)
+                                                                              .length(storageLength)
+                                                                              .sealed(true)
+                                                                              .attributes(createAttributes())
+                                                                              .build());
         updateMap.setStreamSegmentId(mapOp.getStreamSegmentId());
         txn2.preProcessOperation(updateMap);
         txn2.acceptOperation(updateMap);
@@ -924,29 +955,25 @@ public class ContainerMetadataUpdateTransactionTests {
                 startOffset, metadata.getStreamSegmentMetadata(mapOp.getStreamSegmentId()).getStartOffset());
     }
 
-    /**
-     * Tests the processOperation and acceptOperation methods with StreamSegmentMapOperations (isTransaction==true).
-     */
-    @Test
-    public void testPreProcessTransactionMap() throws Exception {
+    private void testProcessMappingOperation(BiFunction<Long, String, MappingOperation> createTransactionMap) throws Exception {
         UpdateableContainerMetadata metadata = createBlankMetadata();
         val txn1 = createUpdateTransaction(metadata);
 
         // Parent does not exist.
         AssertExtensions.assertThrows(
                 "Unexpected behavior from preProcessOperation when attempting to map a Transaction StreamSegment to an inexistent parent.",
-                () -> txn1.preProcessOperation(createTransactionMap(12345)),
+                () -> txn1.preProcessOperation(createTransactionMap(12345, SEALED_TRANSACTION_NAME)),
                 ex -> ex instanceof MetadataUpdateException);
 
         // Brand new Transaction (and parent).
-        StreamSegmentMapOperation mapParent = createMap();
+        MappingOperation mapParent = createNewSegment(SEGMENT_NAME);
         txn1.preProcessOperation(mapParent); // Create parent.
         txn1.acceptOperation(mapParent);
         txn1.commit(metadata);
 
         // Part 1: recovery mode.
         metadata.enterRecoveryMode();
-        StreamSegmentMapOperation mapOp = createTransactionMap(mapParent.getStreamSegmentId());
+        MappingOperation mapOp = createTransactionMap.apply(mapParent.getStreamSegmentId(), SEALED_TRANSACTION_NAME);
         val txn2 = createUpdateTransaction(metadata);
         txn2.preProcessOperation(mapOp);
         Assert.assertEquals("preProcessOperation changed the StreamSegmentId on the operation in recovery mode.",
@@ -989,19 +1016,19 @@ public class ContainerMetadataUpdateTransactionTests {
         // Transaction StreamSegmentName exists (metadata).
         AssertExtensions.assertThrows(
                 "Unexpected behavior from preProcessOperation when a TransactionStreamSegment with the same Name already exists (in metadata).",
-                () -> txn3.preProcessOperation(createTransactionMap(mapParent.getStreamSegmentId(), mapOp.getStreamSegmentName())),
+                () -> txn3.preProcessOperation(createTransactionMap.apply(mapParent.getStreamSegmentId(), mapOp.getStreamSegmentName())),
                 ex -> ex instanceof MetadataUpdateException);
 
         // StreamSegmentName already exists and we try to map with the same id. Verify that we are able to update its
         // StorageLength (if different).
         val updateMap = new StreamSegmentMapOperation(mapOp.getParentStreamSegmentId(),
-                 StreamSegmentInformation.builder()
-                        .name(mapOp.getStreamSegmentName())
-                        .startOffset(1) // Purposefully setting this wrong to see if it is auto-corrected.
-                        .length(mapOp.getLength() + 1)
-                        .sealed(true)
-                        .attributes(createAttributes())
-                        .build());
+                StreamSegmentInformation.builder()
+                                        .name(mapOp.getStreamSegmentName())
+                                        .startOffset(1) // Purposefully setting this wrong to see if it is auto-corrected.
+                                        .length(mapOp.getLength() + 1)
+                                        .sealed(true)
+                                        .attributes(createAttributes())
+                                        .build());
         updateMap.setStreamSegmentId(mapOp.getStreamSegmentId());
         txn3.preProcessOperation(updateMap);
         txn3.acceptOperation(updateMap);
@@ -1028,14 +1055,14 @@ public class ContainerMetadataUpdateTransactionTests {
         val txn1 = createUpdateTransaction(metadata);
 
         // Map one segment, which should fill up the quota.
-        StreamSegmentMapOperation acceptedMap = createMap();
+        StreamSegmentMapOperation acceptedMap = createSegmentMap(SEGMENT_NAME);
         txn1.preProcessOperation(acceptedMap);
         txn1.acceptOperation(acceptedMap);
 
         // Verify non-recovery mode.
         AssertExtensions.assertThrows(
                 "Unexpected behavior from preProcessOperation when attempting to map a StreamSegment that would exceed the active segment quota.",
-                () -> txn1.preProcessOperation(createMap("foo")),
+                () -> txn1.preProcessOperation(createSegmentMap("foo")),
                 ex -> ex instanceof TooManyActiveSegmentsException);
 
         AssertExtensions.assertThrows(
@@ -1047,7 +1074,7 @@ public class ContainerMetadataUpdateTransactionTests {
         metadata.enterRecoveryMode();
         val txn2 = createUpdateTransaction(metadata);
         //updater.setOperationSequenceNumber(10000);
-        StreamSegmentMapOperation secondMap = createMap("c");
+        StreamSegmentMapOperation secondMap = createSegmentMap("c");
         secondMap.setStreamSegmentId(1234);
         txn2.preProcessOperation(secondMap);
         txn2.acceptOperation(secondMap);
@@ -1174,7 +1201,7 @@ public class ContainerMetadataUpdateTransactionTests {
         metadata = createBlankMetadata();
         metadata.enterRecoveryMode();
         val txn2 = createUpdateTransaction(metadata);
-        StreamSegmentMapOperation mapOp = createMap(newSegmentName);
+        StreamSegmentMapOperation mapOp = createSegmentMap(newSegmentName);
         mapOp.setStreamSegmentId(newSegmentId);
         processOperation(mapOp, txn2, seqNo::incrementAndGet);
 
@@ -1431,7 +1458,7 @@ public class ContainerMetadataUpdateTransactionTests {
         val txn1 = new ContainerMetadataUpdateTransaction(metadata, metadata, 0);
         Assert.assertEquals("Unexpected Active Segment Count for first transaction.",
                 expected, txn1.getActiveSegmentCount());
-        val map1 = createMap("NewSegment1");
+        val map1 = createSegmentMap("NewSegment1");
         txn1.preProcessOperation(map1);
         map1.setSequenceNumber(metadata.nextOperationSequenceNumber());
         txn1.acceptOperation(map1);
@@ -1444,7 +1471,7 @@ public class ContainerMetadataUpdateTransactionTests {
 
         Assert.assertEquals("Unexpected Active Segment Count for second transaction.",
                 expected, txn2.getActiveSegmentCount());
-        val map2 = createMap("NewSegment2");
+        val map2 = createSegmentMap("NewSegment2");
         txn2.preProcessOperation(map2);
         map2.setSequenceNumber(metadata.nextOperationSequenceNumber());
         txn2.acceptOperation(map2);
@@ -1529,11 +1556,7 @@ public class ContainerMetadataUpdateTransactionTests {
         return new MergeTransactionOperation(SEGMENT_ID, SEALED_TRANSACTION_ID);
     }
 
-    private StreamSegmentMapOperation createMap() {
-        return createMap(SEGMENT_NAME);
-    }
-
-    private StreamSegmentMapOperation createMap(String name) {
+    private StreamSegmentMapOperation createSegmentMap(String name) {
         return new StreamSegmentMapOperation(StreamSegmentInformation.builder()
                 .name(name)
                 .length(SEGMENT_LENGTH)
@@ -1541,10 +1564,6 @@ public class ContainerMetadataUpdateTransactionTests {
                 .sealed(true)
                 .attributes(createAttributes())
                 .build());
-    }
-
-    private StreamSegmentMapOperation createTransactionMap(long parentId) {
-        return createTransactionMap(parentId, SEALED_TRANSACTION_NAME);
     }
 
     private StreamSegmentMapOperation createTransactionMap(long parentId, String name) {
@@ -1555,6 +1574,14 @@ public class ContainerMetadataUpdateTransactionTests {
                 .sealed(true)
                 .attributes(createAttributes())
                 .build());
+    }
+
+    private CreateSegmentOperation createNewSegment(String name) {
+        return new CreateSegmentOperation(name, createAttributes());
+    }
+
+    private CreateSegmentOperation createNewTransaction(long parentId, String name) {
+        return new CreateSegmentOperation(parentId, name, createAttributes());
     }
 
     private MetadataCheckpointOperation createMetadataCheckpoint() {

@@ -18,14 +18,17 @@ import io.pravega.segmentstore.contracts.StreamSegmentException;
 import io.pravega.segmentstore.contracts.StreamSegmentNotExistsException;
 import io.pravega.segmentstore.contracts.StreamSegmentSealedException;
 import io.pravega.segmentstore.server.ConfigHelpers;
+import io.pravega.segmentstore.server.ContainerMetadata;
 import io.pravega.segmentstore.server.DataCorruptionException;
 import io.pravega.segmentstore.server.IllegalContainerStateException;
 import io.pravega.segmentstore.server.MetadataBuilder;
 import io.pravega.segmentstore.server.ReadIndex;
+import io.pravega.segmentstore.server.SegmentMetadata;
 import io.pravega.segmentstore.server.ServiceListeners;
 import io.pravega.segmentstore.server.TestDurableDataLog;
 import io.pravega.segmentstore.server.TruncationMarkerRepository;
 import io.pravega.segmentstore.server.UpdateableContainerMetadata;
+import io.pravega.segmentstore.server.logs.operations.CreateSegmentOperation;
 import io.pravega.segmentstore.server.logs.operations.Operation;
 import io.pravega.segmentstore.server.logs.operations.OperationComparer;
 import io.pravega.segmentstore.server.logs.operations.OperationSerializer;
@@ -44,12 +47,12 @@ import io.pravega.segmentstore.storage.QueueStats;
 import io.pravega.segmentstore.storage.Storage;
 import io.pravega.segmentstore.storage.mocks.InMemoryCacheFactory;
 import io.pravega.segmentstore.storage.mocks.InMemoryStorageFactory;
+import io.pravega.shared.segment.StreamSegmentNameUtils;
 import io.pravega.test.common.AssertExtensions;
 import io.pravega.test.common.ErrorInjector;
 import io.pravega.test.common.IntentionalException;
 import java.io.IOException;
 import java.time.Duration;
-import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -57,12 +60,15 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 import lombok.Cleanup;
 import lombok.RequiredArgsConstructor;
 import lombok.val;
@@ -95,12 +101,6 @@ public class OperationProcessorTests extends OperationLogTestBase {
         @Cleanup
         TestContext context = new TestContext();
 
-        // Generate some test data.
-        HashSet<Long> streamSegmentIds = createStreamSegmentsInMetadata(streamSegmentCount, context.metadata);
-        AbstractMap<Long, Long> transactions = createTransactionsInMetadata(streamSegmentIds, transactionsPerStreamSegment, context.metadata);
-        List<Operation> operations = generateOperations(streamSegmentIds, transactions, appendsPerStreamSegment,
-                METADATA_CHECKPOINT_EVERY, mergeTransactions, sealStreamSegments);
-
         // Setup an OperationProcessor and start it.
         @Cleanup
         TestDurableDataLog dataLog = TestDurableDataLog.create(CONTAINER_ID, MAX_DATA_LOG_APPEND_SIZE, executorService());
@@ -110,8 +110,31 @@ public class OperationProcessorTests extends OperationLogTestBase {
                 dataLog, getNoOpCheckpointPolicy(), executorService());
         operationProcessor.startAsync().awaitRunning();
 
-        // Process all generated operations.
-        List<OperationWithCompletion> completionFutures = processOperations(operations, operationProcessor);
+        // Create Segments and Transactions via operations. Due to the number of steps required to extract the Segment Ids
+        // and Transaction Ids from the created segments, this is only test where it is done this way - which verifies it end-to-end.
+
+        // Create Segments and extract their Ids.
+        List<OperationWithCompletion> completionFutures = new ArrayList<>();
+        completionFutures.addAll(createStreamSegmentsWithOperations(streamSegmentCount, operationProcessor));
+        OperationWithCompletion.allOf(completionFutures).join();
+        val streamSegmentIds = context.metadata.getAllStreamSegmentIds().stream()
+                                               .filter(id -> !context.metadata.getStreamSegmentMetadata(id).isTransaction())
+                                               .collect(Collectors.toSet());
+        Assert.assertEquals("Unexpected number of segments created.", streamSegmentCount, streamSegmentIds.size());
+
+        // Create Transactions and extract their ids.
+        completionFutures.addAll(createTransactionsWithOperations(streamSegmentIds, transactionsPerStreamSegment, context.metadata, operationProcessor));
+        OperationWithCompletion.allOf(completionFutures).join();
+        val transactions = context.metadata.getAllStreamSegmentIds().stream()
+                                           .map(context.metadata::getStreamSegmentMetadata)
+                                           .filter(SegmentMetadata::isTransaction)
+                                           .collect(Collectors.toMap(SegmentMetadata::getId, SegmentMetadata::getParentId));
+        Assert.assertEquals("Unexpected number of transactions created.", streamSegmentCount * transactionsPerStreamSegment, transactions.size());
+
+        // Generate operations and process them.
+        List<Operation> operations = generateOperations(streamSegmentIds, transactions, appendsPerStreamSegment,
+                METADATA_CHECKPOINT_EVERY, mergeTransactions, sealStreamSegments);
+        completionFutures.addAll(processOperations(operations, operationProcessor));
 
         // Wait for all such operations to complete. If any of them failed, this will fail too and report the exception.
         OperationWithCompletion.allOf(completionFutures).join();
@@ -545,6 +568,35 @@ public class OperationProcessorTests extends OperationLogTestBase {
                 "Operation did not fail with the right exception.",
                 () -> completionFuture.completion,
                 ex -> ex instanceof CancellationException);
+    }
+
+    private List<OperationWithCompletion> createStreamSegmentsWithOperations(int streamSegmentCount, OperationProcessor operationProcessor) {
+        List<OperationWithCompletion> completionFutures = new ArrayList<>();
+
+        for (long streamSegmentId = 0; streamSegmentId < streamSegmentCount; streamSegmentId++) {
+            String name = getStreamSegmentName(streamSegmentId);
+            val op = new CreateSegmentOperation(name, null);
+            completionFutures.add(new OperationWithCompletion(op, operationProcessor.process(op)));
+        }
+
+        return completionFutures;
+    }
+
+    private List<OperationWithCompletion> createTransactionsWithOperations(Set<Long> streamSegmentIds, int transactionsPerStreamSegment,
+                                                                           ContainerMetadata containerMetadata, OperationProcessor operationProcessor) {
+        List<OperationWithCompletion> completionFutures = new ArrayList<>();
+
+        for (long streamSegmentId : streamSegmentIds) {
+            String streamSegmentName = containerMetadata.getStreamSegmentMetadata(streamSegmentId).getName();
+
+            for (int i = 0; i < transactionsPerStreamSegment; i++) {
+                String transactionName = StreamSegmentNameUtils.getTransactionNameFromId(streamSegmentName, UUID.randomUUID());
+                val op = new CreateSegmentOperation(streamSegmentId, transactionName, null);
+                completionFutures.add(new OperationWithCompletion(op, operationProcessor.process(op)));
+            }
+        }
+
+        return completionFutures;
     }
 
     private List<OperationWithCompletion> processOperations(Collection<Operation> operations, OperationProcessor operationProcessor) {

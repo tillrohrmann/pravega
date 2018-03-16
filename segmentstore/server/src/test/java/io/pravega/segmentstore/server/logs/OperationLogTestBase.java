@@ -20,13 +20,10 @@ import io.pravega.segmentstore.contracts.ReadResultEntryContents;
 import io.pravega.segmentstore.server.ContainerMetadata;
 import io.pravega.segmentstore.server.DataCorruptionException;
 import io.pravega.segmentstore.server.IllegalContainerStateException;
-import io.pravega.segmentstore.server.OperationLog;
 import io.pravega.segmentstore.server.ReadIndex;
 import io.pravega.segmentstore.server.SegmentMetadata;
 import io.pravega.segmentstore.server.UpdateableContainerMetadata;
 import io.pravega.segmentstore.server.UpdateableSegmentMetadata;
-import io.pravega.segmentstore.server.containers.InMemoryStateStore;
-import io.pravega.segmentstore.server.containers.StreamSegmentMapper;
 import io.pravega.segmentstore.server.logs.operations.MergeTransactionOperation;
 import io.pravega.segmentstore.server.logs.operations.MetadataCheckpointOperation;
 import io.pravega.segmentstore.server.logs.operations.Operation;
@@ -34,7 +31,6 @@ import io.pravega.segmentstore.server.logs.operations.ProbeOperation;
 import io.pravega.segmentstore.server.logs.operations.StreamSegmentAppendOperation;
 import io.pravega.segmentstore.server.logs.operations.StreamSegmentSealOperation;
 import io.pravega.segmentstore.storage.DurableDataLogException;
-import io.pravega.segmentstore.storage.Storage;
 import io.pravega.shared.segment.StreamSegmentNameUtils;
 import io.pravega.test.common.AssertExtensions;
 import io.pravega.test.common.IntentionalException;
@@ -54,9 +50,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.function.Supplier;
 import lombok.Cleanup;
 import lombok.RequiredArgsConstructor;
 import lombok.val;
@@ -67,7 +61,6 @@ import org.junit.Assert;
  */
 abstract class OperationLogTestBase extends ThreadPooledTestSuite {
     protected static final Duration TIMEOUT = Duration.ofMillis(30000);
-    private static final Supplier<CompletableFuture<Void>> NO_OP_METADATA_CLEANUP = () -> CompletableFuture.completedFuture(null);
     private static final int MAX_SEGMENT_COUNT = 1000 * 1000;
 
     @Override
@@ -90,25 +83,6 @@ abstract class OperationLogTestBase extends ThreadPooledTestSuite {
             UpdateableSegmentMetadata segmentMetadata = containerMetadata.mapStreamSegmentId(name, streamSegmentId);
             segmentMetadata.setLength(0);
             segmentMetadata.setStorageLength(0);
-        }
-
-        return result;
-    }
-
-    /**
-     * Creates a number of StreamSegments in the given Metadata and OperationLog.
-     */
-    HashSet<Long> createStreamSegmentsWithOperations(int streamSegmentCount, ContainerMetadata containerMetadata,
-                                                     OperationLog durableLog, Storage storage) {
-        StreamSegmentMapper mapper = new StreamSegmentMapper(containerMetadata, durableLog, new InMemoryStateStore(), NO_OP_METADATA_CLEANUP,
-                storage, ForkJoinPool.commonPool());
-        HashSet<Long> result = new HashSet<>();
-        for (int i = 0; i < streamSegmentCount; i++) {
-            String name = getStreamSegmentName(i);
-            long streamSegmentId = mapper
-                    .createNewStreamSegment(name, null, Duration.ZERO)
-                    .thenCompose(v -> mapper.getOrAssignStreamSegmentId(name, Duration.ZERO)).join();
-            result.add(streamSegmentId);
         }
 
         return result;
@@ -138,33 +112,11 @@ abstract class OperationLogTestBase extends ThreadPooledTestSuite {
         return result;
     }
 
-    /**
-     * Creates a number of Transaction Segments in the given Metadata and OperationLog.
-     */
-    AbstractMap<Long, Long> createTransactionsWithOperations(HashSet<Long> streamSegmentIds, int transactionsPerStreamSegment,
-                                                             ContainerMetadata containerMetadata, OperationLog durableLog, Storage storage) {
-        HashMap<Long, Long> result = new HashMap<>();
-        StreamSegmentMapper mapper = new StreamSegmentMapper(containerMetadata, durableLog, new InMemoryStateStore(), NO_OP_METADATA_CLEANUP,
-                storage, ForkJoinPool.commonPool());
-        for (long streamSegmentId : streamSegmentIds) {
-            String streamSegmentName = containerMetadata.getStreamSegmentMetadata(streamSegmentId).getName();
-
-            for (int i = 0; i < transactionsPerStreamSegment; i++) {
-                long transactionId = mapper
-                        .createNewTransactionStreamSegment(streamSegmentName, UUID.randomUUID(), null, Duration.ZERO)
-                        .thenCompose(v -> mapper.getOrAssignStreamSegmentId(v, Duration.ZERO)).join();
-                result.put(transactionId, streamSegmentId);
-            }
-        }
-
-        return result;
-    }
-
-    private String getStreamSegmentName(long streamSegmentId) {
+    protected String getStreamSegmentName(long streamSegmentId) {
         return String.format("StreamSegment_%d", streamSegmentId);
     }
 
-    private long getTransactionId(long streamSegmentId, int transactionId) {
+    protected long getTransactionId(long streamSegmentId, int transactionId) {
         return (streamSegmentId + 1) * MAX_SEGMENT_COUNT + transactionId;
     }
 

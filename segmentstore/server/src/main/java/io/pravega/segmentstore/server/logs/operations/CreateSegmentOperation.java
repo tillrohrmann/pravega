@@ -15,13 +15,14 @@ import io.pravega.common.io.serialization.RevisionDataInput;
 import io.pravega.common.io.serialization.RevisionDataOutput;
 import io.pravega.segmentstore.server.ContainerMetadata;
 import java.io.IOException;
+import java.util.Collections;
 import java.util.Map;
 import java.util.UUID;
 
 /**
  * Log Operation that represents the creation of a new StreamSegment or Transaction Segment.
  */
-public class CreateSegmentOperation extends MetadataOperation {
+public class CreateSegmentOperation extends MappingOperation {
     //region Members
 
     private long streamSegmentId;
@@ -55,7 +56,7 @@ public class CreateSegmentOperation extends MetadataOperation {
         this.streamSegmentId = ContainerMetadata.NO_STREAM_SEGMENT_ID;
         this.parentStreamSegmentId = parentStreamSegmentId;
         this.streamSegmentName = Exceptions.checkNotNullOrEmpty(streamSegmentName, "streamSegmentName");
-        this.attributes = Preconditions.checkNotNull(attributes, "attributes");
+        this.attributes = attributes == null ? Collections.emptyMap() : attributes;
     }
 
     /**
@@ -66,27 +67,39 @@ public class CreateSegmentOperation extends MetadataOperation {
 
     //endregion
 
-    //region Properties
+    //region MappingOperation
 
-    /**
-     * Gets a value indicating the Name of the StreamSegment.
-     */
+    @Override
+    public long getParentStreamSegmentId() {
+        return this.parentStreamSegmentId;
+    }
+
+    @Override
     public String getStreamSegmentName() {
         return this.streamSegmentName;
     }
 
-    /**
-     * Gets a value indicating the Id of the StreamSegment.
-     */
+    @Override
+    public long getStartOffset() {
+        return 0;
+    }
+
+    @Override
+    public long getLength() {
+        return 0;
+    }
+
+    @Override
+    public boolean isSealed() {
+        return false;
+    }
+
+    @Override
     public long getStreamSegmentId() {
         return this.streamSegmentId;
     }
 
-    /**
-     * Sets the StreamSegmentId for this operation.
-     *
-     * @param value The Id of the segment to set.
-     */
+    @Override
     public void setStreamSegmentId(long value) {
         Preconditions.checkState(this.streamSegmentId == ContainerMetadata.NO_STREAM_SEGMENT_ID,
                 "StreamSegmentId has already been assigned for this operation.");
@@ -101,15 +114,9 @@ public class CreateSegmentOperation extends MetadataOperation {
         return this.attributes;
     }
 
-    /**
-     * Gets a value indicating the Id of the Parent StreamSegment.
-     */
-    public long getParentStreamSegmentId() {
-        return this.parentStreamSegmentId;
-    }
-
-    public boolean isTransaction() {
-        return this.parentStreamSegmentId != ContainerMetadata.NO_STREAM_SEGMENT_ID;
+    @Override
+    public boolean isNewSegment() {
+        return true;
     }
 
     @Override
