@@ -31,7 +31,7 @@ variable "master_num" {
 
 variable "slave_num" {
   type = "string"
-  default = "3"
+  default = "1"
 }
 
 variable "pravega_aws_amis" {
