@@ -164,6 +164,8 @@ public class OperationComparer {
             assertSame(message, (CheckpointOperationBase) expected, (CheckpointOperationBase) actual);
         } else if (expected instanceof StreamSegmentMapOperation) {
             assertSame(message, (StreamSegmentMapOperation) expected, (StreamSegmentMapOperation) actual);
+        } else if (expected instanceof CreateSegmentOperation) {
+            assertSame(message, (CreateSegmentOperation) expected, (CreateSegmentOperation) actual);
         } else if (expected instanceof UpdateAttributesOperation) {
             assertSame(message, (UpdateAttributesOperation) expected, (UpdateAttributesOperation) actual);
         } else {
@@ -176,6 +178,13 @@ public class OperationComparer {
         Assert.assertEquals(message + " Unexpected ParentStreamSegmentId.", expected.getParentStreamSegmentId(), actual.getParentStreamSegmentId());
         Assert.assertEquals(message + " Unexpected StartOffset.", expected.getStartOffset(), actual.getStartOffset());
         Assert.assertEquals(message + " Unexpected StreamSegmentLength.", expected.getLength(), actual.getLength());
+        Assert.assertEquals(message + " Unexpected StreamSegmentName.", expected.getStreamSegmentName(), actual.getStreamSegmentName());
+        AssertExtensions.assertMapEquals(message + "Unexpected attributes.", expected.getAttributes(), actual.getAttributes());
+    }
+
+    private void assertSame(String message, CreateSegmentOperation expected, CreateSegmentOperation actual) {
+        Assert.assertEquals(message + " Unexpected StreamSegmentId.", expected.getStreamSegmentId(), actual.getStreamSegmentId());
+        Assert.assertEquals(message + " Unexpected ParentStreamSegmentId.", expected.getParentStreamSegmentId(), actual.getParentStreamSegmentId());
         Assert.assertEquals(message + " Unexpected StreamSegmentName.", expected.getStreamSegmentName(), actual.getStreamSegmentName());
         AssertExtensions.assertMapEquals(message + "Unexpected attributes.", expected.getAttributes(), actual.getAttributes());
     }
