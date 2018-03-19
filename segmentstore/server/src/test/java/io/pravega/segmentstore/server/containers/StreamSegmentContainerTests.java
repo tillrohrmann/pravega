@@ -85,6 +85,7 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
@@ -178,8 +179,6 @@ public class StreamSegmentContainerTests extends ThreadPooledTestSuite {
 
         // 1. Create the StreamSegments.
         ArrayList<String> segmentNames = createSegments(context);
-        checkActiveSegments(context.container, 0);
-        activateAllSegments(segmentNames, context);
         checkActiveSegments(context.container, segmentNames.size());
 
         // 2. Add some appends.
@@ -329,8 +328,9 @@ public class StreamSegmentContainerTests extends ThreadPooledTestSuite {
         TestContext context = new TestContext();
         context.container.startAsync().awaitRunning();
 
-        // 1. Create the StreamSegments.
-        String segmentName = createSegments(context).get(0);
+        // 1. Create the StreamSegments in Storage (not via the API, since we don't want to activate them).
+        String segmentName = "SegmentName";
+        context.storage.create(segmentName, TIMEOUT).join();
 
         // 2. Add some appends.
         List<CompletableFuture<Void>> opFutures = Collections.synchronizedList(new ArrayList<>());
@@ -1174,6 +1174,9 @@ public class StreamSegmentContainerTests extends ThreadPooledTestSuite {
                 opFutures.add(container.createStreamSegment(segmentName, null, TIMEOUT));
             }
 
+            // Wait for all segment creations to finish first.
+            Futures.allOf(opFutures).join();
+
             for (int i = 0; i < APPENDS_PER_SEGMENT / 2; i++) {
                 for (String segmentName : segmentNames) {
                     byte[] appendData = getAppendData(segmentName, i);
@@ -1497,17 +1500,26 @@ public class StreamSegmentContainerTests extends ThreadPooledTestSuite {
         TimeoutTimer timer = new TimeoutTimer(TIMEOUT);
         return Futures.loop(
                 canContinue::get,
-                () -> context.storage.getStreamSegmentInfo(metadataProps.getName(), TIMEOUT)
-                                     .thenCompose(storageProps -> {
-                                 if (meetsConditions.apply(storageProps)) {
-                                     canContinue.set(false);
-                                     return CompletableFuture.completedFuture(null);
-                                 } else if (!timer.hasRemaining()) {
-                                     return Futures.failedFuture(new TimeoutException());
-                                 } else {
-                                     return Futures.delayedFuture(Duration.ofMillis(10), executorService());
-                                 }
-                             }).thenRun(Runnables.doNothing()),
+                () -> context.storage
+                        .getStreamSegmentInfo(metadataProps.getName(), TIMEOUT)
+                        .exceptionally(ex -> {
+                            // The segment may not yet have been created in Storage.
+                            if (Exceptions.unwrap(ex) instanceof StreamSegmentNotExistsException) {
+                                return null;
+                            }
+                            throw new CompletionException(ex);
+                        })
+                        .thenCompose(storageProps -> {
+                            if (storageProps != null && meetsConditions.apply(storageProps)) {
+                                canContinue.set(false);
+                                return CompletableFuture.completedFuture(null);
+                            } else if (!timer.hasRemaining()) {
+                                return Futures.failedFuture(new TimeoutException());
+                            } else {
+                                return Futures.delayedFuture(Duration.ofMillis(10), executorService());
+                            }
+                        })
+                        .thenRun(Runnables.doNothing()),
                 executorService());
     }
 

@@ -17,7 +17,6 @@ import io.pravega.common.TimeoutTimer;
 import io.pravega.common.concurrent.Futures;
 import io.pravega.common.util.AsyncMap;
 import io.pravega.segmentstore.contracts.AttributeUpdate;
-import io.pravega.segmentstore.contracts.Attributes;
 import io.pravega.segmentstore.contracts.SegmentProperties;
 import io.pravega.segmentstore.contracts.StreamSegmentExistsException;
 import io.pravega.segmentstore.contracts.StreamSegmentNotExistsException;
@@ -27,7 +26,6 @@ import io.pravega.segmentstore.server.OperationLog;
 import io.pravega.segmentstore.server.SegmentMetadata;
 import io.pravega.segmentstore.server.logs.operations.CreateSegmentOperation;
 import io.pravega.segmentstore.server.logs.operations.StreamSegmentMapOperation;
-import io.pravega.segmentstore.storage.SegmentRollingPolicy;
 import io.pravega.segmentstore.storage.Storage;
 import io.pravega.shared.segment.StreamSegmentNameUtils;
 import java.time.Duration;
@@ -531,22 +529,6 @@ public class StreamSegmentMapper extends SegmentStateMapper {
 
     private boolean isValidStreamSegmentId(long id) {
         return id != ContainerMetadata.NO_STREAM_SEGMENT_ID;
-    }
-
-    /**
-     * Extracts the SegmentRollingPolicy from the given AttributeUpdate Collection. If the list is empty or does not have
-     * an Attributes.ROLLOVER_SIZE attribute, then a NO_ROLLING policy is returned.
-     */
-    private SegmentRollingPolicy getRollingPolicy(Collection<AttributeUpdate> attributes) {
-        SegmentRollingPolicy rollingPolicy = SegmentRollingPolicy.NO_ROLLING;
-        if (attributes != null) {
-            AttributeUpdate a = attributes.stream().filter(au -> au.getAttributeId() == Attributes.ROLLOVER_SIZE).findFirst().orElse(null);
-            if (a != null) {
-                rollingPolicy = new SegmentRollingPolicy(a.getValue());
-            }
-        }
-
-        return rollingPolicy;
     }
 
     /**

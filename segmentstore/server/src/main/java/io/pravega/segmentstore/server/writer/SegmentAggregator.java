@@ -15,8 +15,10 @@ import io.pravega.common.Exceptions;
 import io.pravega.common.LoggerHelpers;
 import io.pravega.common.TimeoutTimer;
 import io.pravega.common.concurrent.Futures;
+import io.pravega.segmentstore.contracts.Attributes;
 import io.pravega.segmentstore.contracts.BadOffsetException;
 import io.pravega.segmentstore.contracts.SegmentProperties;
+import io.pravega.segmentstore.contracts.StreamSegmentExistsException;
 import io.pravega.segmentstore.contracts.StreamSegmentNotExistsException;
 import io.pravega.segmentstore.contracts.StreamSegmentSealedException;
 import io.pravega.segmentstore.server.DataCorruptionException;
@@ -30,6 +32,7 @@ import io.pravega.segmentstore.server.logs.operations.StreamSegmentAppendOperati
 import io.pravega.segmentstore.server.logs.operations.StreamSegmentSealOperation;
 import io.pravega.segmentstore.server.logs.operations.StreamSegmentTruncateOperation;
 import io.pravega.segmentstore.storage.SegmentHandle;
+import io.pravega.segmentstore.storage.SegmentRollingPolicy;
 import io.pravega.segmentstore.storage.Storage;
 import java.io.InputStream;
 import java.time.Duration;
@@ -47,6 +50,7 @@ import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
+import lombok.val;
 
 /**
  * Aggregates contents for a specific StreamSegment.
@@ -210,12 +214,39 @@ class SegmentAggregator implements OperationProcessor, AutoCloseable {
 
     //endregion
 
-    //region Operations
+    //region Initialization
+
+    CompletableFuture<Void> createNewSegment(Duration timeout) {
+        Exceptions.checkNotClosed(isClosed(), this);
+        Preconditions.checkState(this.state.get() == AggregatorState.NotInitialized, "SegmentAggregator has already been initialized.");
+        assert this.handle.get() == null : "non-null handle but state == " + this.state.get();
+
+        TimeoutTimer timer = new TimeoutTimer(timeout);
+        return create(timer.getRemaining())
+                .thenComposeAsync(ignored -> openWrite(timer.getRemaining()))
+                .thenAcceptAsync(segmentInfo -> {
+                    if (this.metadata.getLength() < segmentInfo.getLength()) {
+                        // The segment already exists in Storage and has a longer length than we have in our metadata.
+                        // This could not have possibly been created by us.
+                        throw new CompletionException(new DataCorruptionException(
+                                "Segment '%s' already exists in Storage with a length %d which is higher than the metadata length of %d.",
+                                this.metadata.getName(), segmentInfo.getLength(), this.metadata.getLength()));
+                    }
+
+                    updateMetadataDuringInitialization(segmentInfo);
+                    log.info("{}: Created and Initialized. StorageLength = {}, Sealed = {}.", this.traceObjectId, segmentInfo.getLength(), segmentInfo.isSealed());
+                    setState(AggregatorState.Writing);
+                }, this.executor)
+                .exceptionally(ex -> {
+                    handleInitializationException(ex);
+                    return null;
+                });
+    }
 
     /**
      * Initializes the SegmentAggregator by pulling information from the given Storage.
      *
-     * @param timeout  Timeout for the operation.
+     * @param timeout Timeout for the operation.
      * @return A CompletableFuture that, when completed, will indicate that the operation finished successfully. If any
      * errors occurred during the operation, the Future will be completed with the appropriate exception.
      */
@@ -223,55 +254,63 @@ class SegmentAggregator implements OperationProcessor, AutoCloseable {
         Exceptions.checkNotClosed(isClosed(), this);
         Preconditions.checkState(this.state.get() == AggregatorState.NotInitialized, "SegmentAggregator has already been initialized.");
         assert this.handle.get() == null : "non-null handle but state == " + this.state.get();
-        long traceId = LoggerHelpers.traceEnterWithContext(log, this.traceObjectId, "initialize");
-
-        return openWrite(this.metadata.getName(), this.handle, timeout)
+        return openWrite(timeout)
                 .thenAcceptAsync(segmentInfo -> {
-                    // Check & Update StorageLength in metadata.
-                    if (this.metadata.getStorageLength() != segmentInfo.getLength()) {
-                        if (this.metadata.getStorageLength() >= 0) {
-                            // Only log warning if the StorageLength has actually been initialized, but is different.
-                            log.warn("{}: SegmentMetadata has a StorageLength ({}) that is different than the actual one ({}) - updating metadata.", this.traceObjectId, this.metadata.getStorageLength(), segmentInfo.getLength());
-                        }
-
-                        // It is very important to keep this value up-to-date and correct.
-                        this.metadata.setStorageLength(segmentInfo.getLength());
-                    }
-
-                    // Check if the Storage segment is sealed, but it's not in metadata (this is 100% indicative of some data corruption happening).
-                    if (segmentInfo.isSealed()) {
-                        if (!this.metadata.isSealed()) {
-                            throw new CompletionException(new DataCorruptionException(String.format("Segment '%s' is sealed in Storage but not in the metadata.", this.metadata.getName())));
-                        }
-
-                        if (!this.metadata.isSealedInStorage()) {
-                            this.metadata.markSealedInStorage();
-                            log.warn("{}: Segment is sealed in Storage but metadata does not reflect that - updating metadata.", this.traceObjectId);
-                        }
-                    }
-
+                    updateMetadataDuringInitialization(segmentInfo);
                     log.info("{}: Initialized. StorageLength = {}, Sealed = {}.", this.traceObjectId, segmentInfo.getLength(), segmentInfo.isSealed());
-                    LoggerHelpers.traceLeave(log, this.traceObjectId, "initialize", traceId);
                     setState(AggregatorState.Writing);
                 }, this.executor)
                 .exceptionally(ex -> {
-                    ex = Exceptions.unwrap(ex);
-                    if (ex instanceof StreamSegmentNotExistsException) {
-                        // Segment does not exist anymore. This is a real possibility during recovery, in the following cases:
-                        // * We already processed a Segment Deletion but did not have a chance to checkpoint metadata
-                        // * We processed a TransactionMergeOperation but did not have a chance to ack/truncate the DataSource
-                        this.metadata.markDeleted(); // Update metadata, just in case it is not already updated.
-                        log.warn("{}: Segment does not exist in Storage. Ignoring all further operations on it.", this.traceObjectId, ex);
-                        setState(AggregatorState.Writing);
-                        LoggerHelpers.traceLeave(log, this.traceObjectId, "initialize", traceId);
-                    } else {
-                        // Other kind of error - re-throw.
-                        throw new CompletionException(ex);
-                    }
-
+                    handleInitializationException(ex);
                     return null;
                 });
     }
+
+    private void updateMetadataDuringInitialization(SegmentProperties segmentInfo) {
+        // Check & Update StorageLength in metadata.
+        if (this.metadata.getStorageLength() != segmentInfo.getLength()) {
+            if (this.metadata.getStorageLength() >= 0) {
+                // Only log warning if the StorageLength has actually been initialized, but is different.
+                log.warn("{}: SegmentMetadata has a StorageLength ({}) that is different than the actual one ({}) - updating metadata.",
+                        this.traceObjectId, this.metadata.getStorageLength(), segmentInfo.getLength());
+            }
+
+            // It is very important to keep this value up-to-date and correct.
+            this.metadata.setStorageLength(segmentInfo.getLength());
+        }
+
+        // Check if the Storage segment is sealed, but it's not in metadata (this is 100% indicative of some data corruption happening).
+        if (segmentInfo.isSealed()) {
+            if (!this.metadata.isSealed()) {
+                throw new CompletionException(new DataCorruptionException(String.format("Segment '%s' is sealed in Storage but not in the metadata.", this.metadata.getName())));
+            }
+
+            if (!this.metadata.isSealedInStorage()) {
+                this.metadata.markSealedInStorage();
+                log.warn("{}: Segment is sealed in Storage but metadata does not reflect that - updating metadata.", this.traceObjectId);
+            }
+        }
+    }
+
+    private void handleInitializationException(Throwable ex) {
+        ex = Exceptions.unwrap(ex);
+        if (ex instanceof StreamSegmentNotExistsException) {
+            // Segment does not exist anymore. This is a real possibility during recovery, in the following cases:
+            // * We already processed a Segment Deletion but did not have a chance to checkpoint metadata
+            // * We processed a TransactionMergeOperation but did not have a chance to ack/truncate the DataSource
+            // It can also happen due the the Segment being deleted after we invoked create() but before we attempted to open-write it.
+            this.metadata.markDeleted(); // Update metadata, just in case it is not already updated.
+            log.warn("{}: Segment does not exist in Storage. Ignoring all further operations on it.", this.traceObjectId, ex);
+            setState(AggregatorState.Writing);
+        } else {
+            // Other kind of error - re-throw.
+            throw new CompletionException(ex);
+        }
+    }
+
+    //endregion
+
+    //region Processing
 
     /**
      * Adds the given StorageOperation to the Aggregator.
@@ -1318,20 +1357,67 @@ class SegmentAggregator implements OperationProcessor, AutoCloseable {
     }
 
     /**
-     * Opens the given segment for writing.
+     * Opens the Segment for writing.
      *
-     * @param segmentName The segment to open.
-     * @param handleRef   An AtomicReference that will contain the SegmentHandle for the opened segment.
      * @param timeout     Timeout for the operation.
      * @return A Future that will contain information about the opened Segment.
      */
-    private CompletableFuture<SegmentProperties> openWrite(String segmentName, AtomicReference<SegmentHandle> handleRef, Duration timeout) {
+    private CompletableFuture<SegmentProperties> openWrite(Duration timeout) {
         return this.storage
-                .openWrite(segmentName)
+                .openWrite(this.metadata.getName())
                 .thenComposeAsync(handle -> {
-                    handleRef.set(handle);
-                    return this.storage.getStreamSegmentInfo(segmentName, timeout);
+                    this.handle.set(handle);
+                    return this.storage.getStreamSegmentInfo(this.metadata.getName(), timeout);
                 }, this.executor);
+    }
+
+    private CompletableFuture<?> create(Duration timeout) {
+        if (this.metadata.isDeleted()) {
+            // Segment has already been deleted. Do not re-create it.
+            return Futures.failedFuture(new StreamSegmentNotExistsException(this.metadata.getName()));
+        }
+
+        SegmentRollingPolicy rollingPolicy = getRollingPolicy();
+        return this.storage
+                .create(this.metadata.getName(), rollingPolicy, timeout)
+                .exceptionally(ex -> {
+                    ex = Exceptions.unwrap(ex);
+                    if (ex instanceof StreamSegmentExistsException) {
+                        log.warn("{}: Segment '%s' already exists in Storage and cannot be re-created.", this.traceObjectId, this.metadata.getName());
+                        return null;
+                    } else {
+                        // Some other error; re-throw.
+                        throw new CompletionException(ex);
+                    }
+                })
+                .thenCompose(ignored -> {
+                    if (this.metadata.isDeleted()) {
+                        // Segment has been deleted/marked as deleted while we were creating it. We must clean up.
+                        return this.storage.openWrite(this.metadata.getName())
+                                           .thenCompose(handle -> this.storage.delete(handle, timeout))
+                                           .whenComplete((r, ex) -> {
+                                               throw new CompletionException(new StreamSegmentNotExistsException(this.metadata.getName()));
+                                           });
+                    } else {
+                        return CompletableFuture.completedFuture(null);
+                    }
+                });
+    }
+
+    /**
+     * Extracts the SegmentRollingPolicy from the Segment's Attribute Collection. If the Segment does not have
+     * an Attributes.ROLLOVER_SIZE attribute, then a NO_ROLLING policy is returned.
+     */
+    private SegmentRollingPolicy getRollingPolicy() {
+        SegmentRollingPolicy rollingPolicy = SegmentRollingPolicy.NO_ROLLING;
+        val a = this.metadata.getAttributes().entrySet().stream()
+                             .filter(attribute -> attribute.getKey() == Attributes.ROLLOVER_SIZE)
+                             .findFirst().orElse(null);
+        if (a != null) {
+            rollingPolicy = new SegmentRollingPolicy(a.getValue());
+        }
+
+        return rollingPolicy;
     }
 
     //endregion
