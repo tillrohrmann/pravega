@@ -14,6 +14,7 @@ import io.pravega.segmentstore.contracts.AttributeUpdateType;
 import io.pravega.segmentstore.contracts.Attributes;
 import io.pravega.segmentstore.contracts.BadAttributeUpdateException;
 import io.pravega.segmentstore.contracts.BadOffsetException;
+import io.pravega.segmentstore.contracts.StreamSegmentExistsException;
 import io.pravega.segmentstore.contracts.StreamSegmentInformation;
 import io.pravega.segmentstore.contracts.StreamSegmentMergedException;
 import io.pravega.segmentstore.contracts.StreamSegmentNotExistsException;
@@ -912,7 +913,7 @@ public class ContainerMetadataUpdateTransactionTests {
         AssertExtensions.assertThrows(
                 "Unexpected behavior from preProcessOperation when a StreamSegment with the same Name already exists (in transaction).",
                 () -> txn2.preProcessOperation(createMap.apply(mapOp.getStreamSegmentName())),
-                ex -> ex instanceof MetadataUpdateException);
+                ex -> mapOp.isNewSegment() ? ex instanceof StreamSegmentExistsException : ex instanceof MetadataUpdateException);
 
         // Make changes permanent.
         txn2.commit(metadata);
@@ -925,7 +926,7 @@ public class ContainerMetadataUpdateTransactionTests {
         AssertExtensions.assertThrows(
                 "Unexpected behavior from preProcessOperation when a StreamSegment with the same Name already exists (in metadata).",
                 () -> txn2.preProcessOperation(createMap.apply(mapOp.getStreamSegmentName())),
-                ex -> ex instanceof MetadataUpdateException);
+                ex -> mapOp.isNewSegment() ? ex instanceof StreamSegmentExistsException : ex instanceof MetadataUpdateException);
 
         val length = segmentMetadata.getLength() + 5;
         val storageLength = segmentMetadata.getStorageLength() + 1;
@@ -1017,7 +1018,7 @@ public class ContainerMetadataUpdateTransactionTests {
         AssertExtensions.assertThrows(
                 "Unexpected behavior from preProcessOperation when a TransactionStreamSegment with the same Name already exists (in metadata).",
                 () -> txn3.preProcessOperation(createTransactionMap.apply(mapParent.getStreamSegmentId(), mapOp.getStreamSegmentName())),
-                ex -> ex instanceof MetadataUpdateException);
+                ex -> mapOp.isNewSegment() ? ex instanceof StreamSegmentExistsException : ex instanceof MetadataUpdateException);
 
         // StreamSegmentName already exists and we try to map with the same id. Verify that we are able to update its
         // StorageLength (if different).

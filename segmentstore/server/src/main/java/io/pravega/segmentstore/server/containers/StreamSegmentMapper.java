@@ -23,9 +23,9 @@ import io.pravega.segmentstore.contracts.StreamSegmentExistsException;
 import io.pravega.segmentstore.contracts.StreamSegmentNotExistsException;
 import io.pravega.segmentstore.contracts.TooManyActiveSegmentsException;
 import io.pravega.segmentstore.server.ContainerMetadata;
-import io.pravega.segmentstore.server.DataCorruptionException;
 import io.pravega.segmentstore.server.OperationLog;
 import io.pravega.segmentstore.server.SegmentMetadata;
+import io.pravega.segmentstore.server.logs.operations.CreateSegmentOperation;
 import io.pravega.segmentstore.server.logs.operations.StreamSegmentMapOperation;
 import io.pravega.segmentstore.storage.SegmentRollingPolicy;
 import io.pravega.segmentstore.storage.Storage;
@@ -33,7 +33,9 @@ import io.pravega.shared.segment.StreamSegmentNameUtils;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
@@ -42,6 +44,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 import javax.annotation.concurrent.GuardedBy;
 import javax.annotation.concurrent.NotThreadSafe;
 import javax.annotation.concurrent.ThreadSafe;
@@ -118,7 +121,7 @@ public class StreamSegmentMapper extends SegmentStateMapper {
             return Futures.failedFuture(new StreamSegmentExistsException(streamSegmentName));
         }
 
-        CompletableFuture<Void> result = createSegmentInStorageWithRecovery(streamSegmentName, attributes, new TimeoutTimer(timeout));
+        CompletableFuture<Void> result = createSegmentInternal(streamSegmentName, ContainerMetadata.NO_STREAM_SEGMENT_ID, attributes, new TimeoutTimer(timeout));
         if (log.isTraceEnabled()) {
             result.thenAccept(v -> LoggerHelpers.traceLeave(log, traceObjectId, "createNewStreamSegment", traceId, streamSegmentName));
         }
@@ -147,14 +150,14 @@ public class StreamSegmentMapper extends SegmentStateMapper {
                 "parentStreamSegmentName",
                 "Cannot create a Transaction for a Transaction.");
 
-        // Validate that Parent StreamSegment exists.
+        // Validate that Parent StreamSegment exists. First check the in-memory metadata.
         TimeoutTimer timer = new TimeoutTimer(timeout);
-        CompletableFuture<Void> parentCheck = null;
+        CompletableFuture<Long> parentCheck = null;
         long mappedParentId = this.containerMetadata.getStreamSegmentId(parentStreamSegmentName, true);
         if (isValidStreamSegmentId(mappedParentId)) {
             SegmentProperties parentInfo = this.containerMetadata.getStreamSegmentMetadata(mappedParentId);
             if (parentInfo != null) {
-                parentCheck = validateParentSegmentEligibility(parentInfo);
+                parentCheck = validateParentSegmentEligibility(parentInfo, mappedParentId);
             }
         }
 
@@ -162,97 +165,42 @@ public class StreamSegmentMapper extends SegmentStateMapper {
             // The parent is not registered in the metadata. Get required info from Storage and don't map it unnecessarily.
             parentCheck = this.storage
                     .getStreamSegmentInfo(parentStreamSegmentName, timer.getRemaining())
-                    .thenCompose(this::validateParentSegmentEligibility);
+                    .thenComposeAsync(parentInfo -> validateParentSegmentEligibility(parentInfo, ContainerMetadata.NO_STREAM_SEGMENT_ID), this.executor)
+                    .thenCompose(v -> getState(parentStreamSegmentName, timer.getRemaining()))
+                    .thenCompose(state -> {
+                        if (state == null) {
+                            // Segment exists in Storage, is not loaded in Metadata, yet there is no State file. As such,
+                            // it does not have a Segment Id associated with it. We have no choice but to assign one now,
+                            // which means we need to load it up into the Metadata.
+                            return getOrAssignStreamSegmentId(parentStreamSegmentName, timer.getRemaining());
+                        } else {
+                            return CompletableFuture.completedFuture(state.getSegmentId());
+                        }
+                    });
         }
 
         String transactionName = StreamSegmentNameUtils.getTransactionNameFromId(parentStreamSegmentName, transactionId);
         return parentCheck
-                .thenComposeAsync(parentId -> createSegmentInStorageWithRecovery(transactionName, attributes, timer), this.executor)
+                .thenComposeAsync(parentId -> createSegmentInternal(transactionName, parentId, attributes, timer), this.executor)
                 .thenApply(v -> {
                     LoggerHelpers.traceLeave(log, traceObjectId, "createNewTransactionStreamSegment", traceId, parentStreamSegmentName, transactionName);
                     return transactionName;
                 });
     }
 
-    /**
-     * Attempts to create the given Segment (or Transaction) in Storage, with possible recovery from a previous incomplete
-     * attempt. When this method completes successfully, the Storage will have the Segment created, as well as a State File
-     * with the appropriate contents.
-     * <p>
-     * The recovery part handles these three major cases:
-     * <ul>
-     * <li>Segment exists and has a valid State File: the operation will fail with StreamSegmentExistsException.
-     * <li>Segment exists, has a length of zero, and a missing or invalid State File: the state file will be recreated using
-     * the given attributes and the operation will complete successfully (pending a successful State File creation).
-     * <li>Segment exists, has a non-zero length, and either a valid or invalid/missing State File: the state file will be
-     * recreated (if needed) using the given attributes and the operation will fail with StreamSegmentExistsException.
-     * </ul>
-     *
-     * @param segmentName The name of the Segment/Transaction to create.
-     * @param attributes  The initial Attributes for the Segment, if any.
-     * @param timer       A TimeoutTimer to determine how much time is left to complete the operation.
-     * @return A CompletableFuture that, when completed, will indicate that the Segment has been successfully created.
-     */
-    private CompletableFuture<Void> createSegmentInStorageWithRecovery(String segmentName, Collection<AttributeUpdate> attributes, TimeoutTimer timer) {
-        SegmentRollingPolicy rollingPolicy = getRollingPolicy(attributes);
-
-        return Futures
-                .exceptionallyCompose(
-                        this.storage.create(segmentName, rollingPolicy, timer.getRemaining()),
-                        ex -> handleStorageCreateException(segmentName, Exceptions.unwrap(ex), timer))
-                .thenComposeAsync(segmentProps -> saveState(segmentProps, attributes, timer.getRemaining())
-                                .thenRunAsync(() -> {
-                                    // Need to create the state file before we throw any further exceptions in order to recover from
-                                    // previous partial executions (where we created a segment but no or empty state file).
-                                    if (segmentProps.getLength() > 0) {
-                                        throw new CompletionException(new StreamSegmentExistsException(segmentName));
-                                    }
-                                }, this.executor),
-                        this.executor);
-    }
-
-    /**
-     * Exception handler in the case when a Segment/Transaction fails to be created in Storage. This only handles
-     * StreamSegmentExistsException; all other exceptions are "bubbled" up automatically.
-     * <p>
-     * This method simply checks the integrity of the State File; if it exists and is valid, then the Segment is considered
-     * fully created and the original exception is bubbled up. If the State File does not exist or it is not valid, then
-     * the most up-to-date information about the segment is returned (as it exists in Storage).
-     *
-     * @param segmentName       The name of the Segment/Transaction involved.
-     * @param originalException The exception that triggered this.
-     * @param timer             A TimeoutTimer to determine how much time is left to complete the operation.
-     * @return A CompletableFuture that, when completed normally, will contain information about the Segment. If the Segment
-     * already exists or another error happened, this will be completed with the appropriate exception.
-     */
-    private CompletableFuture<SegmentProperties> handleStorageCreateException(String segmentName, Throwable originalException, TimeoutTimer timer) {
-        if (!(originalException instanceof StreamSegmentExistsException)) {
-            // Some other kind of exception that we can't handle here.
-            return Futures.failedFuture(originalException);
-        }
-
-        return getState(segmentName, timer.getRemaining())
-                .exceptionally(ex -> {
-                    ex = Exceptions.unwrap(ex);
-                    if (ex instanceof StreamSegmentNotExistsException || ex instanceof DataCorruptionException) {
-                        // Segment exists, but the State File is missing or corrupt. We have the data needed to rebuild it,
-                        // so ignore any exceptions coming this way.
-                        log.warn("{}: Missing or corrupt State File for existing Segment '{}'; recreating.", this.traceObjectId, segmentName, ex);
-                        return null;
-                    }
-
-                    // All other exceptions need to be bubbled up.
-                    throw new CompletionException(ex);
-                })
-                .thenComposeAsync(s -> {
-                    if (s == null) {
-                        // Segment exists, but no (or corrupted) State File - move on.
-                        return this.storage.getStreamSegmentInfo(segmentName, timer.getRemaining());
+    private CompletableFuture<Void> createSegmentInternal(String segmentName, long parentSegmentId, Collection<AttributeUpdate> initialAttributes, TimeoutTimer timer) {
+        return this.storage
+                .exists(segmentName, timer.getRemaining())
+                .thenCompose(exists -> {
+                    if (exists) {
+                        return Futures.failedFuture(new StreamSegmentExistsException(segmentName));
                     } else {
-                        // Both Segment and State File exist; nothing to rebuild, so re-throw original exception.
-                        return Futures.failedFuture(originalException);
+                        Map<UUID, Long> attributes = initialAttributes == null
+                                ? Collections.emptyMap()
+                                : initialAttributes.stream().collect(Collectors.toMap(AttributeUpdate::getAttributeId, AttributeUpdate::getValue));
+                        return this.durableLog.add(new CreateSegmentOperation(parentSegmentId, segmentName, attributes), timer.getRemaining());
                     }
-                }, this.executor);
+                });
     }
 
     //endregion
@@ -573,11 +521,11 @@ public class StreamSegmentMapper extends SegmentStateMapper {
         });
     }
 
-    private CompletableFuture<Void> validateParentSegmentEligibility(SegmentProperties parentInfo) {
+    private CompletableFuture<Long> validateParentSegmentEligibility(SegmentProperties parentInfo, long parentSegmentId) {
         if (parentInfo.isDeleted() || parentInfo.isSealed()) {
             return Futures.failedFuture(new IllegalArgumentException("Cannot create a Transaction for a deleted or sealed Segment."));
         } else {
-            return CompletableFuture.completedFuture(null);
+            return CompletableFuture.completedFuture(parentSegmentId);
         }
     }
 

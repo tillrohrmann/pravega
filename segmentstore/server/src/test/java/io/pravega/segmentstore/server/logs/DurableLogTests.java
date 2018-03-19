@@ -26,14 +26,14 @@ import io.pravega.segmentstore.server.DataCorruptionException;
 import io.pravega.segmentstore.server.MetadataBuilder;
 import io.pravega.segmentstore.server.OperationLog;
 import io.pravega.segmentstore.server.ReadIndex;
+import io.pravega.segmentstore.server.SegmentMetadata;
 import io.pravega.segmentstore.server.ServiceListeners;
 import io.pravega.segmentstore.server.TestDurableDataLog;
 import io.pravega.segmentstore.server.TestDurableDataLogFactory;
 import io.pravega.segmentstore.server.UpdateableContainerMetadata;
 import io.pravega.segmentstore.server.UpdateableSegmentMetadata;
-import io.pravega.segmentstore.server.containers.InMemoryStateStore;
 import io.pravega.segmentstore.server.containers.StreamSegmentContainerMetadata;
-import io.pravega.segmentstore.server.containers.StreamSegmentMapper;
+import io.pravega.segmentstore.server.logs.operations.CreateSegmentOperation;
 import io.pravega.segmentstore.server.logs.operations.MetadataCheckpointOperation;
 import io.pravega.segmentstore.server.logs.operations.Operation;
 import io.pravega.segmentstore.server.logs.operations.OperationComparer;
@@ -55,6 +55,7 @@ import io.pravega.segmentstore.storage.Storage;
 import io.pravega.segmentstore.storage.mocks.InMemoryCacheFactory;
 import io.pravega.segmentstore.storage.mocks.InMemoryDurableDataLogFactory;
 import io.pravega.segmentstore.storage.mocks.InMemoryStorageFactory;
+import io.pravega.shared.segment.StreamSegmentNameUtils;
 import io.pravega.test.common.AssertExtensions;
 import io.pravega.test.common.ErrorInjector;
 import io.pravega.test.common.IntentionalException;
@@ -69,10 +70,10 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
-import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -80,6 +81,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 import lombok.Cleanup;
 import lombok.Data;
 import lombok.SneakyThrows;
@@ -103,7 +105,6 @@ public class DurableLogTests extends OperationLogTestBase {
     private static final int MAX_DATA_LOG_APPEND_SIZE = 8 * 1024;
     private static final int METADATA_CHECKPOINT_EVERY = 100;
     private static final int NO_METADATA_CHECKPOINT = 0;
-    private static final Supplier<CompletableFuture<Void>> NO_OP_METADATA_CLEANUP = () -> CompletableFuture.completedFuture(null);
     private static final ReadIndexConfig DEFAULT_READ_INDEX_CONFIG = ConfigHelpers
             .withInfiniteCachePolicy(ReadIndexConfig.builder().with(ReadIndexConfig.STORAGE_READ_ALIGNMENT, 1024))
             .build();
@@ -715,7 +716,7 @@ public class DurableLogTests extends OperationLogTestBase {
         storage.initialize(1);
 
         HashSet<Long> streamSegmentIds;
-        AbstractMap<Long, Long> transactions;
+        Map<Long, Long> transactions;
         List<OperationWithCompletion> completionFutures;
         List<Operation> originalOperations;
 
@@ -732,8 +733,8 @@ public class DurableLogTests extends OperationLogTestBase {
 
             // Generate some test data (we need to do this after we started the DurableLog because in the process of
             // recovery, it wipes away all existing metadata).
-            streamSegmentIds = createStreamSegmentsWithOperations(streamSegmentCount, metadata, durableLog, storage);
-            transactions = createTransactionsWithOperations(streamSegmentIds, transactionsPerStreamSegment, metadata, durableLog, storage);
+            streamSegmentIds = createStreamSegmentsWithOperations(streamSegmentCount, metadata, durableLog);
+            transactions = createTransactionsWithOperations(streamSegmentIds, transactionsPerStreamSegment, metadata, durableLog);
             List<Operation> operations = generateOperations(streamSegmentIds, transactions, appendsPerStreamSegment, METADATA_CHECKPOINT_EVERY, mergeTransactions, sealStreamSegments);
 
             // Process all generated operations and wait for them to complete
@@ -797,7 +798,7 @@ public class DurableLogTests extends OperationLogTestBase {
 
             // Generate some test data (we need to do this after we started the DurableLog because in the process of
             // recovery, it wipes away all existing metadata).
-            streamSegmentIds = createStreamSegmentsWithOperations(streamSegmentCount, metadata, durableLog, storage);
+            streamSegmentIds = createStreamSegmentsWithOperations(streamSegmentCount, metadata, durableLog);
             List<Operation> operations = generateOperations(streamSegmentIds, new HashMap<>(), appendsPerStreamSegment, METADATA_CHECKPOINT_EVERY, false, false);
 
             // Process all generated operations and wait for them to complete
@@ -921,7 +922,7 @@ public class DurableLogTests extends OperationLogTestBase {
 
             // DurableLog should start properly.
             durableLog.startAsync().awaitRunning();
-            streamSegmentIds = createStreamSegmentsWithOperations(streamSegmentCount, metadata, durableLog, storage);
+            streamSegmentIds = createStreamSegmentsWithOperations(streamSegmentCount, metadata, durableLog);
             List<Operation> operations = generateOperations(streamSegmentIds, new HashMap<>(), appendsPerStreamSegment, METADATA_CHECKPOINT_EVERY, false, false);
             completionFutures = processOperations(operations, durableLog);
             OperationWithCompletion.allOf(completionFutures).join();
@@ -1035,7 +1036,7 @@ public class DurableLogTests extends OperationLogTestBase {
             durableLog.startAsync().awaitRunning();
 
             // Create the segment.
-            val segmentIds = createStreamSegmentsWithOperations(1, metadata1, durableLog, storage);
+            val segmentIds = createStreamSegmentsWithOperations(1, metadata1, durableLog);
             segmentId = segmentIds.stream().findFirst().orElse(-1L);
 
             // Evict the segment.
@@ -1128,7 +1129,7 @@ public class DurableLogTests extends OperationLogTestBase {
 
             // Generate some test data (we need to do this after we started the DurableLog because in the process of
             // recovery, it wipes away all existing metadata).
-            HashSet<Long> streamSegmentIds = createStreamSegmentsWithOperations(streamSegmentCount, metadata, durableLog, storage);
+            HashSet<Long> streamSegmentIds = createStreamSegmentsWithOperations(streamSegmentCount, metadata, durableLog);
             List<Operation> queuedOperations = generateOperations(streamSegmentIds, new HashMap<>(), appendsPerStreamSegment, METADATA_CHECKPOINT_EVERY, false, false);
             queuedOperations.add(new MetadataCheckpointOperation()); // Add one of these at the end to ensure we can truncate everything.
 
@@ -1244,7 +1245,7 @@ public class DurableLogTests extends OperationLogTestBase {
 
             // Generate some test data (we need to do this after we started the DurableLog because in the process of
             // recovery, it wipes away all existing metadata).
-            streamSegmentIds = createStreamSegmentsWithOperations(streamSegmentCount, metadata, durableLog, storage);
+            streamSegmentIds = createStreamSegmentsWithOperations(streamSegmentCount, metadata, durableLog);
             List<Operation> queuedOperations = generateOperations(streamSegmentIds, new HashMap<>(), appendsPerStreamSegment, METADATA_CHECKPOINT_EVERY, false, false);
             completionFutures = processOperations(queuedOperations, durableLog);
             OperationWithCompletion.allOf(completionFutures).join();
@@ -1329,7 +1330,7 @@ public class DurableLogTests extends OperationLogTestBase {
 
             // Generate some test data (we need to do this after we started the DurableLog because in the process of
             // recovery, it wipes away all existing metadata).
-            streamSegmentIds = createStreamSegmentsWithOperations(streamSegmentCount, metadata1, durableLog, storage);
+            streamSegmentIds = createStreamSegmentsWithOperations(streamSegmentCount, metadata1, durableLog);
             List<Operation> queuedOperations = generateOperations(streamSegmentIds, new HashMap<>(), appendsPerStreamSegment, METADATA_CHECKPOINT_EVERY, false, false);
             completionFutures = processOperations(queuedOperations, durableLog);
             OperationWithCompletion.allOf(completionFutures).join();
@@ -1390,42 +1391,35 @@ public class DurableLogTests extends OperationLogTestBase {
     /**
      * Creates a number of StreamSegments in the given Metadata and OperationLog.
      */
-    HashSet<Long> createStreamSegmentsWithOperations(int streamSegmentCount, ContainerMetadata containerMetadata,
-                                                     OperationLog durableLog, Storage storage) {
-        StreamSegmentMapper mapper = new StreamSegmentMapper(containerMetadata, durableLog, new InMemoryStateStore(), NO_OP_METADATA_CLEANUP,
-                storage, ForkJoinPool.commonPool());
-        HashSet<Long> result = new HashSet<>();
+    HashSet<Long> createStreamSegmentsWithOperations(int streamSegmentCount, ContainerMetadata containerMetadata, OperationLog durableLog) {
         for (int i = 0; i < streamSegmentCount; i++) {
             String name = getStreamSegmentName(i);
-            long streamSegmentId = mapper
-                    .createNewStreamSegment(name, null, Duration.ZERO)
-                    .thenCompose(v -> mapper.getOrAssignStreamSegmentId(name, Duration.ZERO)).join();
-            result.add(streamSegmentId);
+            durableLog.add(new CreateSegmentOperation(name, null), TIMEOUT);
         }
 
-        return result;
+        durableLog.operationProcessingBarrier(TIMEOUT).join();
+        return new HashSet<>(containerMetadata.getAllStreamSegmentIds());
     }
 
     /**
      * Creates a number of Transaction Segments in the given Metadata and OperationLog.
      */
-    AbstractMap<Long, Long> createTransactionsWithOperations(HashSet<Long> streamSegmentIds, int transactionsPerStreamSegment,
-                                                             ContainerMetadata containerMetadata, OperationLog durableLog, Storage storage) {
-        HashMap<Long, Long> result = new HashMap<>();
-        StreamSegmentMapper mapper = new StreamSegmentMapper(containerMetadata, durableLog, new InMemoryStateStore(), NO_OP_METADATA_CLEANUP,
-                storage, ForkJoinPool.commonPool());
+    Map<Long, Long> createTransactionsWithOperations(HashSet<Long> streamSegmentIds, int transactionsPerStreamSegment,
+                                                     ContainerMetadata containerMetadata, OperationLog durableLog) {
         for (long streamSegmentId : streamSegmentIds) {
-            String streamSegmentName = containerMetadata.getStreamSegmentMetadata(streamSegmentId).getName();
+            val parentMetadata = containerMetadata.getStreamSegmentMetadata(streamSegmentId);
 
             for (int i = 0; i < transactionsPerStreamSegment; i++) {
-                long transactionId = mapper
-                        .createNewTransactionStreamSegment(streamSegmentName, UUID.randomUUID(), null, Duration.ZERO)
-                        .thenCompose(v -> mapper.getOrAssignStreamSegmentId(v, Duration.ZERO)).join();
-                result.put(transactionId, streamSegmentId);
+                durableLog.add(new CreateSegmentOperation(parentMetadata.getId(),
+                        StreamSegmentNameUtils.getTransactionNameFromId(parentMetadata.getName(), UUID.randomUUID()), null), TIMEOUT);
             }
         }
 
-        return result;
+        durableLog.operationProcessingBarrier(TIMEOUT).join();
+        return containerMetadata.getAllStreamSegmentIds().stream()
+                                .map(containerMetadata::getStreamSegmentMetadata)
+                                .filter(SegmentMetadata::isTransaction)
+                                .collect(Collectors.toMap(SegmentMetadata::getId, SegmentMetadata::getParentId));
     }
 
     private void performLogOperationChecks(Collection<OperationWithCompletion> operations, DurableLog durableLog) {

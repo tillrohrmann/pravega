@@ -18,6 +18,7 @@ import io.pravega.common.io.serialization.VersionedSerializer;
 import io.pravega.common.util.ImmutableDate;
 import io.pravega.segmentstore.contracts.ContainerException;
 import io.pravega.segmentstore.contracts.StreamSegmentException;
+import io.pravega.segmentstore.contracts.StreamSegmentExistsException;
 import io.pravega.segmentstore.contracts.StreamSegmentNotExistsException;
 import io.pravega.segmentstore.contracts.TooManyActiveSegmentsException;
 import io.pravega.segmentstore.server.ContainerMetadata;
@@ -377,7 +378,7 @@ class ContainerMetadataUpdateTransaction implements ContainerMetadata {
         }
     }
 
-    private void preProcessMetadataOperation(MappingOperation operation) throws ContainerException {
+    private void preProcessMetadataOperation(MappingOperation operation) throws ContainerException, StreamSegmentException {
         if (operation.isTransaction()) {
             // Verify Parent Segment Exists.
             SegmentMetadata parentMetadata = getExistingMetadata(operation.getParentStreamSegmentId());
@@ -475,10 +476,12 @@ class ContainerMetadataUpdateTransaction implements ContainerMetadata {
 
     //region Helpers
 
-    private void checkExistingMapping(MappingOperation operation) throws MetadataUpdateException {
+    private void checkExistingMapping(MappingOperation operation) throws MetadataUpdateException, StreamSegmentExistsException {
         long existingSegmentId = getStreamSegmentId(operation.getStreamSegmentName(), false);
         if (existingSegmentId != ContainerMetadata.NO_STREAM_SEGMENT_ID) {
-            if (operation.isNewSegment() || existingSegmentId != operation.getStreamSegmentId()) {
+            if (operation.isNewSegment()) {
+                throw new StreamSegmentExistsException(operation.getStreamSegmentName());
+            } else if (existingSegmentId != operation.getStreamSegmentId()) {
                 throw new MetadataUpdateException(this.containerId,
                         String.format("Operation '%s' wants to map a Segment that is already mapped in the metadata. Existing Id = %d.",
                                 operation, existingSegmentId));
