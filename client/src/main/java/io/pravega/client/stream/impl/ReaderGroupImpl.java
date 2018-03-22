@@ -10,7 +10,6 @@
 package io.pravega.client.stream.impl;
 
 import com.google.common.annotations.VisibleForTesting;
-import io.pravega.client.ClientFactory;
 import io.pravega.client.netty.impl.ConnectionFactory;
 import io.pravega.client.segment.impl.Segment;
 import io.pravega.client.segment.impl.SegmentMetadataClient;
@@ -47,6 +46,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -64,12 +64,13 @@ import static io.pravega.common.concurrent.Futures.getAndHandleExceptions;
 @Data
 public class ReaderGroupImpl implements ReaderGroup, ReaderGroupMetrics {
 
+    private final UUID writerId;
     private final String scope;
     private final String groupName;
     private final SynchronizerConfig synchronizerConfig;
     private final Serializer<ReaderGroupStateInit> initSerializer;
     private final Serializer<ReaderGroupStateUpdate> updateSerializer;
-    private final ClientFactory clientFactory;
+    private final ClientFactoryInternal clientFactory;
     private final Controller controller;
     private final ConnectionFactory connectionFactory;
     private final NotificationSystem notificationSystem = new NotificationSystem();
@@ -108,7 +109,7 @@ public class ReaderGroupImpl implements ReaderGroup, ReaderGroupMetrics {
     }
 
     private StateSynchronizer<ReaderGroupState> createSynchronizer() {
-        return clientFactory.createStateSynchronizer(NameUtils.getStreamForReaderGroup(groupName),
+        return clientFactory.createStateSynchronizer(writerId, NameUtils.getStreamForReaderGroup(groupName),
                 updateSerializer, initSerializer, synchronizerConfig);
     }
 

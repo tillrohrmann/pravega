@@ -31,16 +31,21 @@ public class SegmentOutputStreamFactoryImpl implements SegmentOutputStreamFactor
     private final ConnectionFactory cf;
 
     @Override
-    public SegmentOutputStream createOutputStreamForTransaction(Segment segment, UUID txId, Consumer<Segment> segmentSealedCallback,
+    public SegmentOutputStream createOutputStreamForTransaction(UUID writerId, Segment segment, UUID txId,
+                                                                Consumer<Segment> segmentSealedCallback,
                                                                 EventWriterConfig config, String delegationToken) {
-        return new SegmentOutputStreamImpl(StreamSegmentNameUtils.getTransactionNameFromId(segment.getScopedName(), txId), controller, cf,
-                UUID.randomUUID(), segmentSealedCallback, getRetryFromConfig(config), delegationToken);
+        String transactionName = StreamSegmentNameUtils.getTransactionNameFromId(segment.getScopedName(), txId);
+        return new SegmentOutputStreamImpl(transactionName, controller, cf, writerId, segmentSealedCallback,
+                                           getRetryFromConfig(config), delegationToken);
     }
 
     @Override
-    public SegmentOutputStream createOutputStreamForSegment(Segment segment, Consumer<Segment> segmentSealedCallback, EventWriterConfig config, String delegationToken) {
-        SegmentOutputStreamImpl result = new SegmentOutputStreamImpl(segment.getScopedName(), controller, cf,
-                UUID.randomUUID(), segmentSealedCallback, getRetryFromConfig(config), delegationToken);
+    public SegmentOutputStream createOutputStreamForSegment(UUID writerId, Segment segment,
+                                                            Consumer<Segment> segmentSealedCallback,
+                                                            EventWriterConfig config, String delegationToken) {
+        SegmentOutputStreamImpl result = new SegmentOutputStreamImpl(segment.getScopedName(), controller, cf, writerId,
+                                                                     segmentSealedCallback, getRetryFromConfig(config),
+                                                                     delegationToken);
         try {
             result.getConnection();
         } catch (RetriesExhaustedException | SegmentSealedException e) {

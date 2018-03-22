@@ -12,6 +12,7 @@ package io.pravega.controller.server;
 import io.pravega.client.netty.impl.ClientConnection;
 import io.pravega.client.netty.impl.ConnectionFactory;
 import io.pravega.client.segment.impl.Segment;
+import io.pravega.client.segment.impl.SequenceGenerator;
 import io.pravega.client.stream.ScalingPolicy;
 import io.pravega.client.stream.impl.ModelHelper;
 import io.pravega.common.Exceptions;
@@ -29,7 +30,6 @@ import io.pravega.shared.protocol.netty.WireCommandType;
 import io.pravega.shared.protocol.netty.WireCommands;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Supplier;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.tuple.ImmutablePair;
@@ -38,7 +38,7 @@ import org.apache.commons.lang3.tuple.Pair;
 @Slf4j
 public class SegmentHelper {
 
-    private final Supplier<Long> idGenerator = new AtomicLong(0)::incrementAndGet;
+    private final Supplier<Long> idGenerator = new SequenceGenerator();
 
     public Controller.NodeUri getSegmentUri(final String scope,
                                             final String stream,

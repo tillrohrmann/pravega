@@ -27,7 +27,7 @@ public class MockSegmentStreamFactory implements SegmentInputStreamFactory, Segm
     private final Map<Segment, MockSegmentIoStreams> segments = new ConcurrentHashMap<>();
 
     @Override
-    public SegmentOutputStream createOutputStreamForTransaction(Segment segment, UUID txId,
+    public SegmentOutputStream createOutputStreamForTransaction(UUID writerId, Segment segment, UUID txId,
                                                                 Consumer<Segment> segmentSealedCallback,
                                                                 EventWriterConfig config, String delegationToken) {
         throw new UnsupportedOperationException();
@@ -40,7 +40,9 @@ public class MockSegmentStreamFactory implements SegmentInputStreamFactory, Segm
     }
     
     @Override
-    public SegmentOutputStream createOutputStreamForSegment(Segment segment, Consumer<Segment> segmentSealedCallback, EventWriterConfig config, String delegationToken) {
+    public SegmentOutputStream createOutputStreamForSegment(UUID writerId, Segment segment,
+                                                            Consumer<Segment> segmentSealedCallback,
+                                                            EventWriterConfig config, String delegationToken) {
         return getMockStream(segment);
     }
 

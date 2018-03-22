@@ -16,6 +16,7 @@ import io.pravega.client.segment.impl.SegmentSealedException;
 import io.pravega.client.stream.EventWriterConfig;
 import io.pravega.client.stream.Stream;
 import io.pravega.common.concurrent.Futures;
+import io.pravega.common.hash.RandomFactory;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -24,6 +25,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Random;
+import java.util.UUID;
 import java.util.function.Consumer;
 import javax.annotation.concurrent.GuardedBy;
 import lombok.RequiredArgsConstructor;
@@ -40,11 +42,12 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 public class SegmentSelector {
 
+    private final UUID writerId;
     private final Stream stream;
     private final Controller controller;
     private final SegmentOutputStreamFactory outputStreamFactory;
     @GuardedBy("$lock")
-    private final Random random = new Random();
+    private final Random random = RandomFactory.create();
     @GuardedBy("$lock")
     private StreamSegments currentSegments;
     @GuardedBy("$lock")
@@ -136,7 +139,9 @@ public class SegmentSelector {
     private void createMissingWriters(Consumer<Segment> segmentSealedCallBack, String delegationToken) {
         for (Segment segment : currentSegments.getSegments()) {
             if (!writers.containsKey(segment)) {
-                SegmentOutputStream out = outputStreamFactory.createOutputStreamForSegment(segment, segmentSealedCallBack, config, delegationToken);
+                SegmentOutputStream out = outputStreamFactory.createOutputStreamForSegment(writerId, segment,
+                                                                                           segmentSealedCallBack,
+                                                                                           config, delegationToken);
                 writers.put(segment, out);
             }
         }

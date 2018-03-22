@@ -174,7 +174,10 @@ public class ReadTest {
                                  .getSegments().iterator().next();
 
         @Cleanup("close")
-        SegmentOutputStream out = segmentproducerClient.createOutputStreamForSegment(segment, segmentSealedCallback, EventWriterConfig.builder().build(), "");
+        SegmentOutputStream out = segmentproducerClient.createOutputStreamForSegment(UUID.randomUUID(), segment,
+                                                                                     segmentSealedCallback,
+                                                                                     EventWriterConfig.builder().build(),
+                                                                                     "");
         out.write(new PendingEvent(null, ByteBuffer.wrap(testString.getBytes()), new CompletableFuture<>()));
         out.flush();
 

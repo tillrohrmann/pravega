@@ -19,6 +19,7 @@ import io.pravega.client.stream.impl.PendingEvent;
 import io.pravega.client.stream.mock.MockSegmentStreamFactory;
 import io.pravega.test.common.AssertExtensions;
 import java.util.NoSuchElementException;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import lombok.Cleanup;
 import org.junit.Test;
@@ -31,13 +32,14 @@ import static org.junit.Assert.assertTrue;
 public class SegmentIteratorTest {
 
     private final JavaSerializer<String> stringSerializer = new JavaSerializer<>();
+    private final UUID writerId = UUID.randomUUID();
     
     @Test(timeout = 5000)
     public void testHasNext() {
         MockSegmentStreamFactory factory = new MockSegmentStreamFactory();
         Segment segment = new Segment("Scope", "Stream", 1);
         EventWriterConfig config = EventWriterConfig.builder().build();
-        SegmentOutputStream outputStream = factory.createOutputStreamForSegment(segment, c -> { }, config, "");
+        SegmentOutputStream outputStream = factory.createOutputStreamForSegment(writerId, segment, c -> { }, config, "");
         sendData("1", outputStream);
         sendData("2", outputStream);
         sendData("3", outputStream);
@@ -61,7 +63,7 @@ public class SegmentIteratorTest {
         MockSegmentStreamFactory factory = new MockSegmentStreamFactory();
         Segment segment = new Segment("Scope", "Stream", 1);
         EventWriterConfig config = EventWriterConfig.builder().build();
-        SegmentOutputStream outputStream = factory.createOutputStreamForSegment(segment, c -> { }, config, "");
+        SegmentOutputStream outputStream = factory.createOutputStreamForSegment(writerId, segment, c -> { }, config, "");
         sendData("1", outputStream);
         sendData("2", outputStream);
         sendData("3", outputStream);
@@ -88,7 +90,7 @@ public class SegmentIteratorTest {
         MockSegmentStreamFactory factory = new MockSegmentStreamFactory();
         Segment segment = new Segment("Scope", "Stream", 1);
         EventWriterConfig config = EventWriterConfig.builder().build();
-        SegmentOutputStream outputStream = factory.createOutputStreamForSegment(segment, c -> { }, config, "");
+        SegmentOutputStream outputStream = factory.createOutputStreamForSegment(writerId, segment, c -> { }, config, "");
         sendData("1", outputStream);
         sendData("2", outputStream);
         sendData("3", outputStream);

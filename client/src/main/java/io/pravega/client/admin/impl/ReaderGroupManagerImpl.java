@@ -10,7 +10,6 @@
 package io.pravega.client.admin.impl;
 
 import io.pravega.client.ClientConfig;
-import io.pravega.client.ClientFactory;
 import io.pravega.client.admin.ReaderGroupManager;
 import io.pravega.client.netty.impl.ConnectionFactory;
 import io.pravega.client.state.SynchronizerConfig;
@@ -21,6 +20,7 @@ import io.pravega.client.stream.ScalingPolicy;
 import io.pravega.client.stream.Stream;
 import io.pravega.client.stream.StreamConfiguration;
 import io.pravega.client.stream.impl.ClientFactoryImpl;
+import io.pravega.client.stream.impl.ClientFactoryInternal;
 import io.pravega.client.stream.impl.Controller;
 import io.pravega.client.stream.impl.ControllerImpl;
 import io.pravega.client.stream.impl.ControllerImplConfig;
@@ -30,6 +30,7 @@ import io.pravega.client.stream.impl.StreamImpl;
 import io.pravega.shared.NameUtils;
 import java.util.Arrays;
 import java.util.Set;
+import java.util.UUID;
 import lombok.Lombok;
 import lombok.extern.slf4j.Slf4j;
 
@@ -43,7 +44,7 @@ import static io.pravega.shared.NameUtils.getStreamForReaderGroup;
 public class ReaderGroupManagerImpl implements ReaderGroupManager {
 
     private final String scope;
-    private final ClientFactory clientFactory;
+    private final ClientFactoryInternal clientFactory;
     private final Controller controller;
     private final ConnectionFactory connectionFactory;
 
@@ -56,7 +57,7 @@ public class ReaderGroupManagerImpl implements ReaderGroupManager {
         this.clientFactory = new ClientFactoryImpl(scope, this.controller, connectionFactory);
     }
 
-    public ReaderGroupManagerImpl(String scope, Controller controller, ClientFactory clientFactory, ConnectionFactory connectionFactory) {
+    public ReaderGroupManagerImpl(String scope, Controller controller, ClientFactoryInternal clientFactory, ConnectionFactory connectionFactory) {
         this.scope = scope;
         this.clientFactory = clientFactory;
         this.controller = controller;
@@ -83,7 +84,7 @@ public class ReaderGroupManagerImpl implements ReaderGroupManager {
                                                                                   .scalingPolicy(ScalingPolicy.fixed(1))
                                                                                   .build());
         SynchronizerConfig synchronizerConfig = SynchronizerConfig.builder().build();
-        ReaderGroupImpl result = new ReaderGroupImpl(scope, groupName, synchronizerConfig, new JavaSerializer<>(),
+        ReaderGroupImpl result = new ReaderGroupImpl(UUID.randomUUID(), scope, groupName, synchronizerConfig, new JavaSerializer<>(),
                                                      new JavaSerializer<>(), clientFactory, controller, connectionFactory);
         result.initializeGroup(config, streams);
         return result;
@@ -109,7 +110,7 @@ public class ReaderGroupManagerImpl implements ReaderGroupManager {
     @Override
     public ReaderGroup getReaderGroup(String groupName) {
         SynchronizerConfig synchronizerConfig = SynchronizerConfig.builder().build();
-        return new ReaderGroupImpl(scope, groupName, synchronizerConfig, new JavaSerializer<>(), new JavaSerializer<>(),
+        return new ReaderGroupImpl(UUID.randomUUID(), scope, groupName, synchronizerConfig, new JavaSerializer<>(), new JavaSerializer<>(),
                                    clientFactory, controller, connectionFactory);
     }
 

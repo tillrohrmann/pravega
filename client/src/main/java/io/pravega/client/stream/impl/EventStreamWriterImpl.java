@@ -69,6 +69,7 @@ public class EventStreamWriterImpl<Type> implements EventStreamWriter<Type> {
      */
     @GuardedBy("writeFlushLock")
     private final ReentrantLock segmentSealedLock = new ReentrantLock();
+    private final UUID writerId;
     private final Stream stream;
     private final Serializer<Type> serializer;
     private final SegmentOutputStreamFactory outputStreamFactory;
@@ -81,17 +82,19 @@ public class EventStreamWriterImpl<Type> implements EventStreamWriter<Type> {
     private final ExecutorService retransmitPool;
     private final Pinger pinger;
     
-    EventStreamWriterImpl(Stream stream, Controller controller, SegmentOutputStreamFactory outputStreamFactory,
+    EventStreamWriterImpl(UUID writerId, Stream stream, Controller controller, SegmentOutputStreamFactory outputStreamFactory,
             Serializer<Type> serializer, EventWriterConfig config, ExecutorService retransmitPool) {
+        Preconditions.checkNotNull(writerId);
         Preconditions.checkNotNull(stream);
         Preconditions.checkNotNull(controller);
         Preconditions.checkNotNull(outputStreamFactory);
         Preconditions.checkNotNull(serializer);
+        this.writerId = writerId;
         this.stream = stream;
         this.controller = controller;
         this.segmentSealedCallBack = this::handleLogSealed;
         this.outputStreamFactory = outputStreamFactory;
-        this.selector = new SegmentSelector(stream, controller, outputStreamFactory, config);
+        this.selector = new SegmentSelector(writerId, stream, controller, outputStreamFactory, config);
         this.serializer = serializer;
         this.config = config;
         this.retransmitPool = retransmitPool;
@@ -308,8 +311,11 @@ public class EventStreamWriterImpl<Type> implements EventStreamWriter<Type> {
         UUID txnId = txnSegments.getTxnId();
         Map<Segment, SegmentTransaction<Type>> transactions = new HashMap<>();
         for (Segment s : txnSegments.getSteamSegments().getSegments()) {
-            SegmentOutputStream out = outputStreamFactory.createOutputStreamForTransaction(s, txnId,
-                    segmentSealedCallBack, config, txnSegments.getSteamSegments().getDelegationToken());
+            SegmentOutputStream out = outputStreamFactory.createOutputStreamForTransaction(writerId, s, txnId,
+                                                                                           segmentSealedCallBack,
+                                                                                           config,
+                                                                                           txnSegments.getSteamSegments()
+                                                                                                      .getDelegationToken());
             SegmentTransactionImpl<Type> impl = new SegmentTransactionImpl<>(txnId, out, serializer);
             transactions.put(s, impl);
         }
@@ -328,7 +334,10 @@ public class EventStreamWriterImpl<Type> implements EventStreamWriter<Type> {
         
         Map<Segment, SegmentTransaction<Type>> transactions = new HashMap<>();
         for (Segment s : segments.getSegments()) {
-            SegmentOutputStream out = outputStreamFactory.createOutputStreamForTransaction(s, txId, segmentSealedCallBack, config, segments.getDelegationToken());
+            SegmentOutputStream out = outputStreamFactory.createOutputStreamForTransaction(writerId, s, txId,
+                                                                                           segmentSealedCallBack,
+                                                                                           config,
+                                                                                           segments.getDelegationToken());
             SegmentTransactionImpl<Type> impl = new SegmentTransactionImpl<>(txId, out, serializer);
             transactions.put(s, impl);
         }

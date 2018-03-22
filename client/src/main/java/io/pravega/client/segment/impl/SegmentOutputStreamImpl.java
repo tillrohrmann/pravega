@@ -45,7 +45,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentNavigableMap;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -74,7 +73,7 @@ class SegmentOutputStreamImpl implements SegmentOutputStream {
     private final String segmentName;
     private final Controller controller;
     private final ConnectionFactory connectionFactory;
-    private final Supplier<Long> requestIdGenerator = new AtomicLong(0)::incrementAndGet;
+    private final Supplier<Long> requestIdGenerator = new SequenceGenerator();
     private final UUID writerId;
     private final Consumer<Segment> callBackForSealed;
     private final State state = new State();

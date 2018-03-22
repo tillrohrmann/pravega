@@ -21,6 +21,7 @@ public interface SegmentOutputStreamFactory {
      * Creates a stream for an open transaction. This will fail if the segment does not exist or is sealed.
      * This may be called multiple times for the same transaction.
      *
+     * @param writerId The Id of the writer.
      * @param segment The segment the transaction belongs to.
      * @param txId    The transaction id.
      * @param segmentSealedCallback Method to be executed on receiving SegmentSealed from SSS.
@@ -28,7 +29,9 @@ public interface SegmentOutputStreamFactory {
      * @param delegationToken token to pass on to segmentstore to authenticate access to the segment.
      * @return New instance of SegmentOutputStream with an open transaction.
      */
-    SegmentOutputStream createOutputStreamForTransaction(Segment segment, UUID txId, Consumer<Segment> segmentSealedCallback, EventWriterConfig config, String delegationToken);
+    SegmentOutputStream createOutputStreamForTransaction(UUID writerId, Segment segment, UUID txId,
+                                                         Consumer<Segment> segmentSealedCallback,
+                                                         EventWriterConfig config, String delegationToken);
 
     /**
      * Creates a stream for an existing segment. This operation will fail if the segment does not
@@ -37,11 +40,14 @@ public interface SegmentOutputStreamFactory {
      * same or different clients (i.e., there can be concurrent Stream Writers
      * in the same process space).
      *
+     * @param writerId The Id of the writer.
      * @param segment The segment.
      * @param segmentSealedCallback Method to be executed on receiving SegmentSealed from SSS.
      * @param config  The configuration for the writer
      * @param delegationToken token to pass on to segmentstore to authenticate access to the segment.
      * @return New instance of SegmentOutputStream for writing.
      */
-    SegmentOutputStream createOutputStreamForSegment(Segment segment, Consumer<Segment> segmentSealedCallback, EventWriterConfig config, String delegationToken);
+    SegmentOutputStream createOutputStreamForSegment(UUID writerId, Segment segment,
+                                                     Consumer<Segment> segmentSealedCallback, EventWriterConfig config,
+                                                     String delegationToken);
 }

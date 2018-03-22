@@ -10,7 +10,6 @@
 package io.pravega.client.stream.mock;
 
 import io.pravega.client.ClientConfig;
-import io.pravega.client.ClientFactory;
 import io.pravega.client.batch.BatchClient;
 import io.pravega.client.batch.impl.BatchClientImpl;
 import io.pravega.client.netty.impl.ConnectionFactoryImpl;
@@ -26,10 +25,12 @@ import io.pravega.client.stream.EventWriterConfig;
 import io.pravega.client.stream.ReaderConfig;
 import io.pravega.client.stream.Serializer;
 import io.pravega.client.stream.impl.ClientFactoryImpl;
+import io.pravega.client.stream.impl.ClientFactoryInternal;
 import io.pravega.client.stream.impl.Controller;
+import java.util.UUID;
 import java.util.function.Supplier;
 
-public class MockClientFactory implements ClientFactory, AutoCloseable {
+public class MockClientFactory implements ClientFactoryInternal, AutoCloseable {
 
     private final ConnectionFactoryImpl connectionFactory;
     private final Controller controller;
@@ -48,8 +49,8 @@ public class MockClientFactory implements ClientFactory, AutoCloseable {
     }
 
     @Override
-    public <T> EventStreamWriter<T> createEventWriter(String streamName, Serializer<T> s, EventWriterConfig config) {
-        return impl.createEventWriter(streamName, s, config);
+    public <T> EventStreamWriter<T> createEventWriter(UUID writerId, String streamName, Serializer<T> s, EventWriterConfig config) {
+        return impl.createEventWriter(writerId, streamName, s, config);
     }
 
     @Override
@@ -65,16 +66,15 @@ public class MockClientFactory implements ClientFactory, AutoCloseable {
     }
     
     @Override
-    public <T> RevisionedStreamClient<T> createRevisionedStreamClient(String streamName, Serializer<T> serializer,
+    public <T> RevisionedStreamClient<T> createRevisionedStreamClient(UUID writerId, String streamName, Serializer<T> serializer,
             SynchronizerConfig config) {
-        return impl.createRevisionedStreamClient(streamName, serializer, config);
+        return impl.createRevisionedStreamClient(writerId, streamName, serializer, config);
     }
 
     @Override
     public <StateT extends Revisioned, UpdateT extends Update<StateT>, InitT extends InitialUpdate<StateT>> StateSynchronizer<StateT> createStateSynchronizer(
-            String streamName, Serializer<UpdateT> updateSerializer, Serializer<InitT> initialSerializer,
-            SynchronizerConfig config) {
-        return impl.createStateSynchronizer(streamName, updateSerializer, initialSerializer, config);
+            UUID writerId, String streamName, Serializer<UpdateT> updateSerializer, Serializer<InitT> initialSerializer, SynchronizerConfig config) {
+        return impl.createStateSynchronizer(writerId, streamName, updateSerializer, initialSerializer, config);
     }
 
     @Override

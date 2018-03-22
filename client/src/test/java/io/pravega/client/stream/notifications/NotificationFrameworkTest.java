@@ -12,6 +12,7 @@ package io.pravega.client.stream.notifications;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+import java.util.UUID;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -33,7 +34,7 @@ public class NotificationFrameworkTest {
 
     private final ScheduledExecutorService executor = new InlineExecutor();
     @Spy
-    private final ReaderGroupImpl readerGroup = new ReaderGroupImpl("testScope", "rg1", null, null, null,
+    private final ReaderGroupImpl readerGroup = new ReaderGroupImpl(UUID.randomUUID(), "testScope", "rg1", null, null, null,
             null, null, null);
     private final NotificationSystem notificationSystem = readerGroup.getNotificationSystem();
     @Mock
