@@ -18,7 +18,9 @@ You may obtain a copy of the License at
         </encoder>
     </appender>
 
-    <root level="DEBUG">
+    <root level="OFF">
         <appender-ref ref="STDOUT"/>
     </root>
+
+    <logger name="io.pravega.segmentstore.server.host.stat.AutoScaleProcessor" level="INFO"/>
 </configuration>

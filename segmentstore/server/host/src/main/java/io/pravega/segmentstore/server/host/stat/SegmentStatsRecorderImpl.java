@@ -31,7 +31,7 @@ import java.util.concurrent.TimeUnit;
 @Slf4j
 public class SegmentStatsRecorderImpl implements SegmentStatsRecorder {
     private static final long TWO_MINUTES = Duration.ofMinutes(2).toMillis();
-    private static final long TWENTY_MINUTES = Duration.ofMinutes(20).toMillis();
+    public static final long TWENTY_MINUTES = Duration.ofMinutes(20).toMillis();
     private static final int INITIAL_CAPACITY = 1000;
     private static final int MAX_CACHE_SIZE = 100000; // 100k segment records in memory.
     // At 100k * with each aggregate approximately ~80 bytes = 8 Mb of memory foot print.

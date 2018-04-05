@@ -198,20 +198,14 @@ public class AutoScaleProcessor {
                     log.debug("cool down period elapsed for {}", streamSegmentName);
 
                     // report to see if a scale operation needs to be performed.
-                    if ((twoMinuteRate > 5.0 * targetRate && currentTime - startTime > TWO_MINUTES) ||
-                            (fiveMinuteRate > 2.0 * targetRate && currentTime - startTime > FIVE_MINUTES) ||
-                            (tenMinuteRate > targetRate && currentTime - startTime > TEN_MINUTES)) {
+                    if (twoMinuteRate > 2.0 * targetRate) {
                         int numOfSplits = Math.max(2, (int) (Double.max(Double.max(twoMinuteRate, fiveMinuteRate), tenMinuteRate) / targetRate));
                         log.debug("triggering scale up for {} with number of splits {}", streamSegmentName, numOfSplits);
 
                         triggerScaleUp(streamSegmentName, numOfSplits);
                     }
 
-                    if (twoMinuteRate < targetRate &&
-                            fiveMinuteRate < targetRate &&
-                            tenMinuteRate < targetRate &&
-                            twentyMinuteRate < targetRate / 2.0 &&
-                            currentTime - startTime > TWENTY_MINUTES) {
+                    if (twoMinuteRate < targetRate) {
                         log.debug("triggering scale down for {}", streamSegmentName);
 
                         triggerScaleDown(streamSegmentName, false);

@@ -494,6 +494,8 @@ project('standalone') {
         classpath = sourceSets.main.runtimeClasspath
         systemProperties System.getProperties()
         systemProperties 'logback.configurationFile' : new File('config/logback.xml').absolutePath
+        systemProperties 'autoScale.cooldownInSeconds' : 10
+        systemProperties 'autoScale.muteInSeconds' : 20
         jvmArgs "-Xdebug", "-Xrunjdwp:server=y,transport=dt_socket,address=8000,suspend=n"
     }
 }

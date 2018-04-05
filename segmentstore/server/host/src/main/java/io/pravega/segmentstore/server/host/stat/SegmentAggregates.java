@@ -31,7 +31,7 @@ import java.util.concurrent.atomic.AtomicReference;
  */
 class SegmentAggregates {
 
-    private static final int SECONDS_PER_MINUTE = 60;
+    private static final int SECONDS_PER_MINUTE = 30;
 
     private static final int INTERVAL_IN_SECONDS = 5;
     private static final long TICK_INTERVAL = Duration.ofSeconds(5).toMillis();
@@ -39,7 +39,7 @@ class SegmentAggregates {
     /**
      * Exponential weights.
      */
-    private static final double M2_ALPHA = 1 - StrictMath.exp((double) -INTERVAL_IN_SECONDS / (double) SECONDS_PER_MINUTE / 2);
+    private static final double M2_ALPHA = 1 - StrictMath.exp((double) -INTERVAL_IN_SECONDS / (double) SECONDS_PER_MINUTE / 1);
     private static final double M5_ALPHA = 1 - StrictMath.exp((double) -INTERVAL_IN_SECONDS / (double) SECONDS_PER_MINUTE / 5);
     private static final double M10_ALPHA = 1 - StrictMath.exp((double) -INTERVAL_IN_SECONDS / (double) SECONDS_PER_MINUTE / 10);
     private static final double M20_ALPHA = 1 - StrictMath.exp((double) -INTERVAL_IN_SECONDS / (double) SECONDS_PER_MINUTE / 20);

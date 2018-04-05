@@ -45,13 +45,26 @@ public class SegmentStatsFactory implements AutoCloseable {
                                                            ClientFactory clientFactory,
                                                            AutoScalerConfig configuration) {
         AutoScaleProcessor monitor = new AutoScaleProcessor(configuration, clientFactory, maintenanceExecutor);
-        return new SegmentStatsRecorderImpl(monitor, store,
-                executor, maintenanceExecutor);
+        return new SegmentStatsRecorderImpl(
+                monitor,
+                store,
+                configuration.getCooldownDuration().toMillis(),
+                SegmentStatsRecorderImpl.TWENTY_MINUTES,
+                TimeUnit.MILLISECONDS,
+                executor,
+                maintenanceExecutor);
     }
 
     public SegmentStatsRecorder createSegmentStatsRecorder(StreamSegmentStore store, AutoScalerConfig configuration) {
         AutoScaleProcessor monitor = new AutoScaleProcessor(configuration, maintenanceExecutor);
-        return new SegmentStatsRecorderImpl(monitor, store, executor, maintenanceExecutor);
+        return new SegmentStatsRecorderImpl(
+                monitor,
+                store,
+                configuration.getCooldownDuration().toMillis(),
+                SegmentStatsRecorderImpl.TWENTY_MINUTES,
+                TimeUnit.MILLISECONDS,
+                executor,
+                maintenanceExecutor);
     }
 
     @Override
