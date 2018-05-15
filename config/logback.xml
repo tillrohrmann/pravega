@@ -27,7 +27,7 @@ You may obtain a copy of the License at
         </encoder>
     </appender>
 
-    <root level="INFO">
+    <root level="OFF">
         <appender-ref ref="STDOUT"/>
         <appender-ref ref="FILE"/>
     </root>

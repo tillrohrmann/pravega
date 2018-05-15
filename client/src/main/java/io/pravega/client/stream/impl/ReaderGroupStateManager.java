@@ -185,6 +185,7 @@ public class ReaderGroupStateManager {
                 segment = findSegmentToRelease();
                 if (segment != null) {
                     releaseTimer.reset(UPDATE_WINDOW);
+                    acquireTimer.reset(UPDATE_WINDOW);
                 }
             }
         }

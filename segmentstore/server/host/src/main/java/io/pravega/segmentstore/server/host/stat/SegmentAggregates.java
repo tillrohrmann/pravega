@@ -31,7 +31,7 @@ import java.util.concurrent.atomic.AtomicReference;
  */
 class SegmentAggregates {
 
-    private static final int SECONDS_PER_MINUTE = 30;
+    private static final int SECONDS_PER_MINUTE = 10;
 
     private static final int INTERVAL_IN_SECONDS = 5;
     private static final long TICK_INTERVAL = Duration.ofSeconds(5).toMillis();
